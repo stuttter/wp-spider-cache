@@ -1,0 +1,53 @@
+.spider-cache table th.blog-id,
+.spider-cache table th.count {
+	width: 10%;
+}
+
+.spider-cache table th.cache-group {
+	width: 25%;
+}
+
+.spider-cache table th.keys {
+	width: 55%;
+}
+
+.spider-cache .tablenav .alignright form {
+	display: inline-block;
+}
+
+.spider-cache textarea.jc-item {
+	width: 100%;
+	font-family: monospace;
+}
+
+.spider-cache .jc-toolbar-secondary {
+	float: left;
+	height: 100%;
+	margin: 12px 5px;
+}
+
+.spider-cache .jc-toolbar-primary {
+	max-width: 33%;
+	height: 100%;
+}
+
+.spider-cache .item .row-actions {
+	display: inline-block;
+}
+
+.spider-cache .row-updating .check-column {
+	background: url('../img/spinner.gif') 10px 9px no-repeat;
+}
+@media print,
+(-o-min-device-pixel-ratio: 5/4),
+(-webkit-min-device-pixel-ratio: 1.25),
+(min-resolution: 120dpi) {
+	.spider-cache .row-updating .check-column {
+		background-image: url('../img/spinner-2x.gif');
+		background-size: 20px 20px;
+	}
+}
+
+.spider-cache .row-updating .check-column input {
+	visibility: hidden;
+}
