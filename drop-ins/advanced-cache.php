@@ -58,7 +58,7 @@ $spider_cache = new WP_Spider_Cache_Output( $spider_cache );
 if ( is_array( $_COOKIE ) && ! empty( $_COOKIE ) ) {
 	$cookie_keys = array_keys( $_COOKIE );
 	foreach ( $cookie_keys as $spider_cache->cookie ) {
-		if ( ! in_array( $spider_cache->cookie, $spider_cache->noskip_cookies ) && ( substr( $spider_cache->cookie, 0, 2 ) == 'wp' || substr( $spider_cache->cookie, 0, 9 ) == 'wordpress' || substr( $spider_cache->cookie, 0, 14 ) == 'comment_author' ) ) {
+		if ( ! in_array( $spider_cache->cookie, $spider_cache->noskip_cookies ) && ( substr( $spider_cache->cookie, 0, 2 ) === 'wp' || substr( $spider_cache->cookie, 0, 9 ) === 'wordpress' || substr( $spider_cache->cookie, 0, 14 ) === 'comment_author' ) ) {
 			return;
 		}
 	}
@@ -117,8 +117,9 @@ if ( $spider_cache->seconds < 1 || $spider_cache->times < 2 ) {
 } else {
 
 	// No spider_cache item found, or ready to sample traffic again at the end of the spider_cache life?
-	if ( ! is_array( $spider_cache->cache ) || ( time() >= $spider_cache->cache['time'] + $spider_cache->max_age - $spider_cache->seconds ) ) {
+	if ( ! is_array( $spider_cache->cache ) || ( $spider_cache->started >= $spider_cache->cache['time'] + $spider_cache->max_age - $spider_cache->seconds ) ) {
 		wp_cache_add( $spider_cache->req_key, 0, $spider_cache->group );
+
 		$spider_cache->requests = wp_cache_incr( $spider_cache->req_key, 1, $spider_cache->group );
 
 		if ( $spider_cache->requests >= $spider_cache->times ) {
@@ -140,7 +141,7 @@ if ( ! isset( $spider_cache->cache['max_age'] ) ) {
 }
 
 // Did we find a spider_cached page that hasn't expired?
-if ( isset( $spider_cache->cache['time'] ) && empty( $spider_cache->genlock ) && ( time() < $spider_cache->cache['time'] + $spider_cache->cache['max_age'] ) ) {
+if ( isset( $spider_cache->cache['time'] ) && empty( $spider_cache->genlock ) && ( $spider_cache->started < $spider_cache->cache['time'] + $spider_cache->cache['max_age'] ) ) {
 
 	// Issue redirect if cached and enabled
 	if ( $spider_cache->cache['redirect_status'] && $spider_cache->cache['redirect_location'] && $spider_cache->cache_redirects ) {
@@ -151,6 +152,7 @@ if ( isset( $spider_cache->cache['time'] ) && empty( $spider_cache->genlock ) &&
 		$is_IIS = ( strpos( $_SERVER['SERVER_SOFTWARE'], 'Microsoft-IIS' ) !== false || strpos( $_SERVER['SERVER_SOFTWARE'], 'ExpressionDevServer' ) !== false );
 
 		$spider_cache->do_headers( $spider_cache->headers );
+
 		if ( ! empty( $is_IIS ) ) {
 			header( "Refresh: 0;url={$location}" );
 		} else {
@@ -167,6 +169,7 @@ if ( isset( $spider_cache->cache['time'] ) && empty( $spider_cache->genlock ) &&
 				);
 
 				$protocol = $_SERVER["SERVER_PROTOCOL"];
+
 				if ( 'HTTP/1.1' !== $protocol && 'HTTP/1.0' !== $protocol ) {
 					$protocol = 'HTTP/1.0';
 				}
@@ -177,8 +180,10 @@ if ( isset( $spider_cache->cache['time'] ) && empty( $spider_cache->genlock ) &&
 					header( "{$protocol} 302 Found");
 				}
 			}
+
 			header( "Location: {$location}" );
 		}
+
 		exit;
 	}
 
@@ -207,7 +212,7 @@ if ( isset( $spider_cache->cache['time'] ) && empty( $spider_cache->genlock ) &&
 	// "304 Not Modified" but don't clobber a cached Last-Modified header.
 	if ( $spider_cache->cache_control && ! isset( $spider_cache->cache['headers']['Last-Modified'][0] ) ) {
 		header( 'Last-Modified: ' . gmdate( 'D, d M Y H:i:s', $spider_cache->cache['time'] ) . ' GMT', true );
-		header( 'Cache-Control: max-age=' . ( $spider_cache->cache['max_age'] - time() + $spider_cache->cache['time'] ) . ', must-revalidate', true );
+		header( 'Cache-Control: max-age=' . ( $spider_cache->cache['max_age'] - $spider_cache->started + $spider_cache->cache['time'] ) . ', must-revalidate', true );
 	}
 
 	// Add some debug info just before </head>

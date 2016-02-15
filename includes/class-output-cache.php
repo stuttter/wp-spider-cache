@@ -18,6 +18,13 @@ defined( 'ABSPATH' ) || exit();
 class WP_Spider_Cache_Output {
 
 	/**
+	 * The timestamp when the object was created
+	 *
+	 * @var int
+	 */
+	public $started = 0;
+
+	/**
 	 * This is the base configuration. You can edit these variables or move them
 	 * into your wp-config.php file.
 	 *
@@ -155,11 +162,16 @@ class WP_Spider_Cache_Output {
 	 * @param array $settings
 	 */
 	public function __construct( $settings = array() ) {
+
+		// Allow passing of settings in via parameter
 		if ( is_array( $settings ) ) {
 			foreach ( $settings as $k => $v ) {
-				$this->$k = $v;
+				$this->{$k} = $v;
 			}
 		}
+
+		// Set the started time
+		$this->started = time();
 
 		// Always set cache groups
 		$this->configure_groups();
