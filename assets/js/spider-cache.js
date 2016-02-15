@@ -1,4 +1,4 @@
-/* global window, document, $, jQuery, ajaxurl, SpiderCache */
+/* global window, document, $, jQuery, ajaxurl, WP_Spider_Cache */
 
 ( function ( $ ) {
 	"use strict";
@@ -39,12 +39,12 @@
 
 		if ( $val ) {
 			$refreshInstance.prop( 'disabled', true );
-			$instanceStore.html( SpiderCache.refreshing_results );
+			$instanceStore.html( WP_Spider_Cache.refreshing_results );
 			$.ajax( {
 				type : 'post',
 				url  : ajaxurl,
 				data : {
-					action : 'jc-get-instance',
+					action : 'sc-get-instance',
 					nonce  : $el.data( 'nonce' ),
 					name   : $val
 				},
@@ -55,7 +55,7 @@
 							$instanceStore.html( data );
 							$refreshInstance.show();
 						} else {
-							$instanceStore.html( SpiderCache.no_results );
+							$instanceStore.html( WP_Spider_Cache.no_results );
 						}
 						$refreshInstance.prop( 'disabled', false );
 					}, 500 );
@@ -77,13 +77,13 @@
 	}
 
 	$( document ).ready( function () {
-		$instanceStore    = $( '.jc-contents' );
-		$refreshInstance  = $( '.jc-refresh-instance' );
-		$instanceSelector = $( '.jc-server-selector' );
-		$noResults        = $( '.jc-no-results' );
-		$refreshResults   = $( '.jc-refresh-results' );
-		$showItem         = $( '#jc-show-item' );
-		$searchResults    = $( '#jc-search-input' );
+		$instanceStore    = $( '.sc-contents' );
+		$refreshInstance  = $( '.sc-refresh-instance' );
+		$instanceSelector = $( '.sc-server-selector' );
+		$noResults        = $( '.sc-no-results' );
+		$refreshResults   = $( '.sc-refresh-results' );
+		$showItem         = $( '#sc-show-item' );
+		$searchResults    = $( '#sc-search-input' );
 
 		$searchResults.keyup( function() {
 			searchTable( this );
@@ -97,7 +97,7 @@
 		$instanceSelector.bind( 'change', handleChange );
 
 		$( document.body )
-			.on( 'click', '.jc-flush-group', function ( e ) {
+			.on( 'click', '.sc-flush-group', function ( e ) {
 				var elem = $( e.currentTarget ),
 					keys = [ ];
 
@@ -118,7 +118,7 @@
 
 				return false;
 			} )
-			.on( 'click', '.jc-remove-item', function ( e ) {
+			.on( 'click', '.sc-remove-item', function ( e ) {
 				var elem = $( e.currentTarget );
 
 				elem.parents( 'tr' ).addClass( 'row-updating' );
@@ -130,13 +130,13 @@
 				} );
 				return false;
 			} )
-			.on( 'click', '.jc-view-item', function ( e ) {
+			.on( 'click', '.sc-view-item', function ( e ) {
 				$.ajax( {
 					type    : 'post',
 					url     : e.currentTarget.href,
 					success : function ( data ) {
 						$showItem.html( data );
-						window.location.hash = 'jc-wrapper';
+						window.location.hash = 'sc-wrapper';
 					}
 				} );
 				return false;

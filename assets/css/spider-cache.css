@@ -15,18 +15,18 @@
 	display: inline-block;
 }
 
-.spider-cache textarea.jc-item {
+.spider-cache textarea.sc-item {
 	width: 100%;
 	font-family: monospace;
 }
 
-.spider-cache .jc-toolbar-secondary {
+.spider-cache .sc-toolbar-secondary {
 	float: left;
 	height: 100%;
 	margin: 12px 5px;
 }
 
-.spider-cache .jc-toolbar-primary {
+.spider-cache .sc-toolbar-primary {
 	max-width: 33%;
 	height: 100%;
 }
