@@ -1,6 +1,6 @@
 # WP Spider Cache
 
-WP Spider Cache your friendly neighborhood caching solution for WordPress. It uses Memcached to store both objects & page output.
+WP Spider Cache is your friendly neighborhood caching solution for WordPress. It uses Memcached to store both objects & page output.
 
 If you are familiar with Batcache and WP Super Cache, you'll be right at home here.
 
