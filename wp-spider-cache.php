@@ -502,7 +502,7 @@ class WP_Spider_Cache_UI {
 		$offset  = 0;
 
 		// Offset by 1 if using cache-key salt
-		if ( ! wp_object_cache()->cache_key_salt ) {
+		if ( wp_object_cache()->cache_key_salt ) {
 			$offset = 1;
 		}
 
