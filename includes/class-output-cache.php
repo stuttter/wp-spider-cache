@@ -270,7 +270,7 @@ class WP_Spider_Cache_Output {
 
 		// Do not cache blank pages unless they are HTTP redirects
 		$output = trim( $output );
-		if ( ( $output === '' ) && ( ! $this->redirect_status || ! $this->redirect_location ) ) {
+		if ( ( '' === $output ) && ( ! $this->redirect_status || ! $this->redirect_location ) ) {
 			return;
 		}
 
@@ -356,7 +356,9 @@ class WP_Spider_Cache_Output {
 	}
 
 	public function do_variants( $dimensions = false ) {
-		// This function is called without arguments early in the page load, then with arguments during the OB handler.
+
+		// This function is called without arguments early in the page load,
+		// then with arguments during the OB handler.
 		if ( false === $dimensions ) {
 			$dimensions = wp_cache_get( "{$this->url_key}_vary", $this->group );
 		} else {
