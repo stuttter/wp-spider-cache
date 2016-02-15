@@ -369,6 +369,9 @@ class WP_Spider_Cache_UI {
 		$memcache = new Memcache();
 		$memcache->connect( $server, $port );
 
+		// No errors
+		$old_errors = error_reporting( 0 );
+
 		// Get slabs
 		$slabs = $memcache->getExtendedStats( 'slabs' );
 		$list  = array();
@@ -402,6 +405,9 @@ class WP_Spider_Cache_UI {
 				}
 			}
 		}
+
+		// Restore error reporting
+		error_reporting( $old_errors );
 
 		// Return the list of Memcache server slab keys
 		return $list;
