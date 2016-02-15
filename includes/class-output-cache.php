@@ -11,9 +11,7 @@
 defined( 'ABSPATH' ) || exit();
 
 /**
- * The main Spider-Cache class
- *
- * @todo Detail what this is and how it works
+ * The main Spider-Cache output cache class
  */
 class WP_Spider_Cache_Output {
 
@@ -159,40 +157,18 @@ class WP_Spider_Cache_Output {
 	/**
 	 * Main spider_cache constructor
 	 *
-	 * @param array $settings
+	 * @since 2.0.0
 	 */
-	public function __construct( $settings = array() ) {
-
-		// Allow passing of settings in via parameter
-		if ( is_array( $settings ) ) {
-			foreach ( $settings as $k => $v ) {
-				$this->{$k} = $v;
-			}
-		}
+	public function __construct() {
 
 		// Set the started time
 		$this->started = time();
 
 		// Always set cache groups
 		$this->configure_groups();
-	}
 
-	public function is_ssl() {
-		if ( isset( $_SERVER['HTTPS'] ) ) {
-
-			if ( 'on' === strtolower( $_SERVER['HTTPS'] ) ) {
-				return true;
-			}
-
-			if ( '1' === $_SERVER['HTTPS'] ) {
-				return true;
-			}
-
-		} elseif ( isset( $_SERVER['SERVER_PORT'] ) && ( '443' === $_SERVER['SERVER_PORT'] ) ) {
-			return true;
-		}
-
-		return false;
+		// Start caching
+		$this->start();
 	}
 
 	public function status_header( $status_header, $status_code ) {
@@ -446,5 +422,193 @@ HTML;
 			return;
 		}
 		$this->cache['output'] = substr_replace( $this->cache['output'], $debug_html, $head_position, 0 );
+	}
+
+	public function start() {
+
+		// Bail if cookies indicate a cache-exempt visitor
+		if ( is_array( $_COOKIE ) && ! empty( $_COOKIE ) ) {
+			$cookie_keys = array_keys( $_COOKIE );
+			foreach ( $cookie_keys as $this->cookie ) {
+				if ( ! in_array( $this->cookie, $this->noskip_cookies ) && ( substr( $this->cookie, 0, 2 ) === 'wp' || substr( $this->cookie, 0, 9 ) === 'wordpress' || substr( $this->cookie, 0, 14 ) === 'comment_author' ) ) {
+					return;
+				}
+			}
+		}
+
+		// Disabled
+		if ( $this->max_age < 1 ) {
+			return;
+		}
+
+		// Necessary to prevent clients using cached version after login cookies
+		// set. If this is a problem, comment it out and remove all
+		// Last-Modified headers.
+		header( 'Vary: Cookie', false );
+
+		// Things that define a unique page.
+		if ( isset( $_SERVER['QUERY_STRING'] ) ) {
+			parse_str( $_SERVER['QUERY_STRING'], $this->query );
+		}
+
+		// Build different versions for HTTP/1.1 and HTTP/2.0
+		if ( isset( $_SERVER['SERVER_PROTOCOL'] ) ) {
+			$this->unique['server_protocol'] = $_SERVER['SERVER_PROTOCOL'];
+		}
+
+		// Setup keys
+		$this->keys = array(
+			'host'   => $_SERVER['HTTP_HOST'],
+			'method' => $_SERVER['REQUEST_METHOD'],
+			'path'   => ( $this->pos = strpos( $_SERVER['REQUEST_URI'], '?' ) ) ? substr( $_SERVER['REQUEST_URI'], 0, $this->pos ) : $_SERVER['REQUEST_URI'],
+			'query'  => $this->query,
+			'extra'  => $this->unique,
+			'ssl'    => is_ssl()
+		);
+
+		// Recreate the permalink from the URL
+		$protocol          = ( true === $this->keys['ssl'] ) ? 'https://' : 'http://';
+		$this->permalink   = $protocol . $this->keys['host'] . $this->keys['path'] . ( isset( $this->keys['query']['p'] ) ? "?p=" . $this->keys['query']['p'] : '' );
+		$this->url_key     = md5( $this->permalink );
+		$this->url_version = (int) wp_cache_get( "{$this->url_key}_version", $this->group );
+
+		// Setup keys and variants
+		$this->do_variants();
+		$this->generate_keys();
+
+		// Get the spider_cache
+		$this->cache = wp_cache_get( $this->key, $this->group );
+
+		// Are we only caching frequently-requested pages?
+		if ( $this->seconds < 1 || $this->times < 2 ) {
+			$this->do = true;
+		} else {
+
+			// No spider_cache item found, or ready to sample traffic again at
+			// the end of the spider_cache life?
+			if ( ! is_array( $this->cache ) || ( $this->started >= $this->cache['time'] + $this->max_age - $this->seconds ) ) {
+				wp_cache_add( $this->req_key, 0, $this->group );
+
+				$this->requests = wp_cache_incr( $this->req_key, 1, $this->group );
+
+				if ( $this->requests >= $this->times ) {
+					$this->do = true;
+				} else {
+					$this->do = false;
+				}
+			}
+		}
+
+		// If the document has been updated and we are the first to notice, regenerate it.
+		if ( $this->do !== false && isset( $this->cache['version'] ) && $this->cache['version'] < $this->url_version ) {
+			$this->genlock = wp_cache_add( "{$this->url_key}_genlock", 1, $this->group, 10 );
+		}
+
+		// Did we find a spider_cached page that hasn't expired?
+		if ( isset( $this->cache['time'] ) && empty( $this->genlock ) && ( $this->started < $this->cache['time'] + $this->cache['max_age'] ) ) {
+
+			// Issue redirect if cached and enabled
+			if ( $this->cache['redirect_status'] && $this->cache['redirect_location'] && $this->cache_redirects ) {
+				$status   = $this->cache['redirect_status'];
+				$location = $this->cache['redirect_location'];
+
+				// From vars.php
+				$is_IIS = ( strpos( $_SERVER['SERVER_SOFTWARE'], 'Microsoft-IIS' ) !== false || strpos( $_SERVER['SERVER_SOFTWARE'], 'ExpressionDevServer' ) !== false );
+
+				$this->do_headers( $this->headers );
+
+				if ( ! empty( $is_IIS ) ) {
+					header( "Refresh: 0;url={$location}" );
+				} else {
+					if ( php_sapi_name() !== 'cgi-fcgi' ) {
+						$texts = array(
+							300 => 'Multiple Choices',
+							301 => 'Moved Permanently',
+							302 => 'Found',
+							303 => 'See Other',
+							304 => 'Not Modified',
+							305 => 'Use Proxy',
+							306 => 'Reserved',
+							307 => 'Temporary Redirect',
+						);
+
+						$protocol = $_SERVER["SERVER_PROTOCOL"];
+
+						if ( 'HTTP/1.1' !== $protocol && 'HTTP/1.0' !== $protocol ) {
+							$protocol = 'HTTP/1.0';
+						}
+
+						if ( isset( $texts[ $status ] ) ) {
+							header( "{$protocol} {$status} " . $texts[ $status ] );
+						} else {
+							header( "{$protocol} 302 Found");
+						}
+					}
+
+					header( "Location: {$location}" );
+				}
+
+				exit;
+			}
+
+			// Respect ETags served with feeds.
+			$three_oh_four = false;
+			if ( isset( $_SERVER['HTTP_IF_NONE_MATCH'] ) && isset( $this->cache['headers']['ETag'][0] ) && $_SERVER['HTTP_IF_NONE_MATCH'] == $this->cache['headers']['ETag'][0] ) {
+				$three_oh_four = true;
+
+			// Respect If-Modified-Since.
+			} elseif ( $this->cache_control && isset( $_SERVER['HTTP_IF_MODIFIED_SINCE'] ) ) {
+
+				$client_time = strtotime( $_SERVER['HTTP_IF_MODIFIED_SINCE'] );
+
+				if ( isset( $this->cache['headers']['Last-Modified'][0] ) ) {
+					$cache_time = strtotime( $this->cache['headers']['Last-Modified'][0] );
+				} else {
+					$cache_time = $this->cache['time'];
+				}
+
+				if ( $client_time >= $cache_time ) {
+					$three_oh_four = true;
+				}
+			}
+
+			// Use the spider_cache save time for Last-Modified so we can issue
+			// "304 Not Modified" but don't clobber a cached Last-Modified header.
+			if ( $this->cache_control && ! isset( $this->cache['headers']['Last-Modified'][0] ) ) {
+				header( 'Last-Modified: ' . gmdate( 'D, d M Y H:i:s', $this->cache['time'] ) . ' GMT', true );
+				header( 'Cache-Control: max-age=' . ( $this->cache['max_age'] - $this->started + $this->cache['time'] ) . ', must-revalidate', true );
+			}
+
+			// Add some debug info just before </head>
+			if ( true === $this->debug ) {
+				$this->add_debug_from_cache();
+			}
+
+			$this->do_headers( $this->headers, $this->cache['headers'] );
+
+			if ( true === $three_oh_four ) {
+				header( "HTTP/1.1 304 Not Modified", true, 304 );
+				die;
+			}
+
+			if ( ! empty( $this->cache['status_header'] ) ) {
+				header( $this->cache['status_header'], true );
+			}
+
+			// Have you ever heard a death rattle before?
+			die( $this->cache['output'] );
+		}
+
+		// Didn't meet the minimum condition?
+		if ( empty( $this->do ) && empty( $this->genlock ) ) {
+			return;
+		}
+
+		// Headers and such
+		$wp_filter['status_header'][10]['spider_cache']      = array( 'function' => array( $this, 'status_header'   ), 'accepted_args' => 2 );
+		$wp_filter['wp_redirect_status'][10]['spider_cache'] = array( 'function' => array( $this, 'redirect_status' ), 'accepted_args' => 2 );
+
+		// Start the spidey-sense listening
+		ob_start( array( $this, 'ob' ) );
 	}
 }

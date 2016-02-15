@@ -14,13 +14,13 @@ defined( 'ABSPATH' ) || exit;
  *
  * @since 2.0.0
  *
- * @global WP_Spider_Cache $spider_cache
+ * @global WP_Spider_Cache $wp_output_cache
  */
 function spider_cache_cancel() {
-	global $spider_cache;
+	global $wp_output_cache;
 
-	if ( is_object( $spider_cache ) ) {
-		$spider_cache->cancel = true;
+	if ( is_object( $wp_output_cache ) ) {
+		$wp_output_cache->cancel = true;
 	}
 }
 
@@ -46,7 +46,7 @@ function spider_cache_cancel() {
  * @since 2.0.0
  */
 function vary_cache_on_function( $function = '' ) {
-	global $spider_cache;
+	global $wp_output_cache;
 
 	if ( empty( $function ) ) {
 		die( 'Variant determiner cannot be empty.' );
@@ -60,7 +60,7 @@ function vary_cache_on_function( $function = '' ) {
 		die( 'Variant determiner should refer to at least one $_ variable.' );
 	}
 
-	$spider_cache->add_variant( $function );
+	$wp_output_cache->add_variant( $function );
 }
 
 /**
@@ -869,7 +869,7 @@ function wp_cache_add_non_persistent_groups( $groups ) {
  *
  * @since 2.0.0
  *
- * @global  WP_Object_Cache     $wp_object_cache    WordPress Object Cache
+ * @global  WP_Spider_Cache_Object  $wp_object_cache   WordPress Object Cache
  * @return  void
  */
 function wp_cache_init() {
@@ -882,8 +882,8 @@ function wp_cache_init() {
  *
  * @since 2.0.0
  *
- * @global  WP_Object_Cache     $wp_object_cache    WordPress Object Cache
- * @return  void
+ * @global  WP_Spider_Cache_Object  $wp_object_cache   WordPress Object Cache
+ * @return  object
  */
 function wp_object_cache() {
 
@@ -892,4 +892,35 @@ function wp_object_cache() {
 	}
 
 	return $GLOBALS['wp_object_cache'];
+}
+
+/**
+ * Sets up Output Cache Global and assigns it.
+ *
+ * @since 2.1.0
+ *
+ * @global  WP_Spider_Cache_Output  $wp_object_cache   WordPress Object Cache
+ * @return  void
+ */
+function wp_output_cache_init() {
+	require_once 'class-output-cache.php';
+	$GLOBALS['wp_output_cache'] = new WP_Spider_Cache_Output();
+}
+
+
+/**
+ * Returns the Output Cache Global.
+ *
+ * @since 2.1.0
+ *
+ * @global  WP_Spider_Cache_Output  $wp_output_cache   WordPress Output Cache
+ * @return  object
+ */
+function wp_output_cache() {
+
+	if ( ! isset( $GLOBALS['wp_output_cache'] ) ) {
+		wp_output_cache_init();
+	}
+
+	return $GLOBALS['wp_output_cache'];
 }
