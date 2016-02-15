@@ -1,8 +1,14 @@
 <?php
 
-/* 
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+/**
+ * Spider Cache Object Cache
+ *
+ * @package Plugins/Cache/Object
  */
 
+// Exit if accessed directly
+defined( 'ABSPATH' ) || exit;
+
+// Pull in required files
+require_once WP_CONTENT_DIR . '/plugins/wp-spider-cache/includes/functions.php';
+require_once WP_CONTENT_DIR . '/plugins/wp-spider-cache/includes/class-object-cache.php';

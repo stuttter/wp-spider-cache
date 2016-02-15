@@ -1,8 +1,13 @@
 <?php
 
 /**
- * 
+ * Spider Cache Output Cache
+ *
+ * @package Plugins/Cache/Output
  */
+
+// Exit if accessed directly
+defined( 'ABSPATH' ) || exit;
 
 /** Checks ********************************************************************/
 
@@ -52,8 +57,8 @@ if ( ! empty( $GLOBALS['HTTP_RAW_POST_DATA'] ) || ! empty( $_POST ) ) {
 /** Start *********************************************************************/
 
 // Required files
-require_once WP_CONTENT_DIR . '/mu-plugins/wp-spider-cache/includes/class-spider-cache.php';
-require_once WP_CONTENT_DIR . '/mu-plugins/wp-spider-cache/includes/functions.php';
+require_once WP_CONTENT_DIR . '/plugins/wp-spider-cache/includes/functions.php';
+require_once WP_CONTENT_DIR . '/plugins/wp-spider-cache/includes/class-spider-cache.php';
 
 // Pass in the global variable which may be an array of settings to
 // override defaults.
