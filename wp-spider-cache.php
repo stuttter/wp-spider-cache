@@ -381,7 +381,8 @@ class WP_Spider_Cache_UI {
 				'id'      => 'salt',
 				'title'   => esc_html__( 'Cache Key', 'wp-spider-cache' ),
 				'content' =>
-					'<p>' . sprintf( esc_html__( 'A Cache Key Salt was identified: %s.', 'wp-spider-cache' ), '<code>' . WP_CACHE_KEY_SALT . '</code>' ) . '</p>'
+					'<p>' . sprintf( esc_html__( 'A Cache Key Salt was identified: %s', 'wp-spider-cache' ), '<code>' . WP_CACHE_KEY_SALT . '</code>' ) . '</p>' .
+					'<p>' . esc_html__( 'These are used by system administrators as a way to invalidate all cached data at the same time.', 'wp-spider-cache' ) . '</p>'
 			) );
 		}
 
