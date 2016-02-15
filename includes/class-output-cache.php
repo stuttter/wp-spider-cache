@@ -144,14 +144,14 @@ class WP_Spider_Cache_Output {
 	 *
 	 * @var bool
 	 */
-	public $genlock = false;
+	private $genlock = false;
 
 	/**
 	 * Used internally
 	 *
 	 * @var bool
 	 */
-	public $do = false;
+	private $do = false;
 
 	/**
 	 * Main spider_cache constructor
@@ -180,7 +180,7 @@ class WP_Spider_Cache_Output {
 	 *
 	 * @return string
 	 */
-	public function status_header( $status_header, $status_code = 200 ) {
+	protected function status_header( $status_header, $status_code = 200 ) {
 		$this->status_header = $status_header;
 		$this->status_code   = (int) $status_code;
 
@@ -197,7 +197,7 @@ class WP_Spider_Cache_Output {
 	 *
 	 * @return type
 	 */
-	public function redirect_status( $status, $location ) {
+	protected function redirect_status( $status, $location ) {
 
 		// Cache this redirect
 		if ( true === $this->cache_redirects ) {
@@ -253,12 +253,14 @@ class WP_Spider_Cache_Output {
 	 */
 	protected function configure_groups() {
 
+		// Local memcached instance only
 		if ( false === $this->remote ) {
 			if ( function_exists( 'wp_cache_add_no_remote_groups' ) ) {
 				wp_cache_add_no_remote_groups( array( $this->group ) );
 			}
 		}
 
+		// Add global cache group
 		if ( function_exists( 'wp_cache_add_global_groups' ) ) {
 			wp_cache_add_global_groups( array( $this->group ) );
 		}
@@ -290,7 +292,7 @@ class WP_Spider_Cache_Output {
 
 		// Do not cache blank pages unless they are HTTP redirects
 		$output = trim( $output );
-		if ( ( '' === $output ) && ( ! $this->redirect_status || ! $this->redirect_location ) ) {
+		if ( empty( $output ) && ( empty( $this->redirect_status ) || empty( $this->redirect_location ) ) ) {
 			return;
 		}
 
@@ -321,12 +323,14 @@ class WP_Spider_Cache_Output {
 			$this->cache['headers'][ $k ] = $v;
 		}
 
+		// Set uncached headers
 		if ( ! empty( $this->cache['headers'] ) && ! empty( $this->uncached_headers ) ) {
 			foreach ( $this->uncached_headers as $header ) {
 				unset( $this->cache['headers'][ $header ] );
 			}
 		}
 
+		// Set cached headers
 		foreach ( $this->cache['headers'] as $header => $values ) {
 
 			// Bail if cookies were set
@@ -335,7 +339,7 @@ class WP_Spider_Cache_Output {
 			}
 
 			foreach ( (array) $values as $value ) {
-				if ( preg_match( '/^Cache-Control:.*max-?age=(\d+)/i', "$header: $value", $matches ) ) {
+				if ( preg_match( '/^Cache-Control:.*max-?age=(\d+)/i', "{$header}: {$value}", $matches ) ) {
 					$this->max_age = intval( $matches[1] );
 				}
 			}
@@ -400,8 +404,9 @@ class WP_Spider_Cache_Output {
 			wp_cache_set( "{$this->url_key}_vary", $dimensions, $this->group, $this->max_age + 10 );
 		}
 
+		// Sort keys
 		if ( is_array( $dimensions ) ) {
-			ksort( $dimensions );
+			ksort( $dimensions ); // OCD much?
 			foreach ( $dimensions as $key => $function ) {
 				$fun   = create_function( '', $function );
 				$value = $fun();
@@ -444,10 +449,11 @@ HTML;
 	 * @since 2.0.0
 	 */
 	protected function add_debug_from_cache() {
-		$seconds_ago = time() - $this->cache['time'];
+		$time        = time();
+		$seconds_ago = $time - $this->cache['time'];
 		$generation  = $this->cache['timer'];
 		$serving     = $this->timer_stop( false, 3 );
-		$expires     = $this->cache['max_age'] - time() + $this->cache['time'];
+		$expires     = $this->cache['max_age'] - $time + $this->cache['time'];
 		$html        = <<<HTML
 <!--
 	generated {$seconds_ago} seconds ago
@@ -468,7 +474,7 @@ HTML;
 	 * @param string $debug_html
 	 * @return void
 	 */
-	public function add_debug_html_to_output( $debug_html = '' ) {
+	protected function add_debug_html_to_output( $debug_html = '' ) {
 
 		// Casing on the Content-Type header is inconsistent
 		foreach ( array( 'Content-Type', 'Content-type' ) as $key ) {
@@ -492,7 +498,7 @@ HTML;
 	 *
 	 * @return void
 	 */
-	public function start() {
+	protected function start() {
 
 		// Bail if cookies indicate a cache-exempt visitor
 		if ( is_array( $_COOKIE ) && ! empty( $_COOKIE ) ) {
@@ -713,17 +719,17 @@ HTML;
 	 *
 	 * @since 2.0.0
 	 */
-	private function timer_stop( $display = 0, $precision = 3 ) {
+	private function timer_stop( $display = true, $precision = 3 ) {
 		global $timestart, $timeend;
 
 		$mtime     = microtime();
 		$mtime     = explode( ' ',$mtime );
 		$mtime     = $mtime[1] + $mtime[0];
 		$timeend   = $mtime;
-		$timetotal = $timeend-$timestart;
+		$timetotal = $timeend - $timestart;
 		$r         = number_format( $timetotal, $precision );
 
-		if ( ! empty( $display ) ) {
+		if ( true === $display ) {
 			echo $r;
 		}
 
