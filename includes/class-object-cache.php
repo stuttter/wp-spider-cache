@@ -94,25 +94,25 @@ class WP_Spider_Cache_Object {
 		$this->thirty_days = DAY_IN_SECONDS * 30;
 		$this->now         = time();
 
-		if ( is_null( $persistent_id ) || ! is_string( $persistent_id ) ) {
-			$this->mc = new Memcached();
-		} else {
-			$this->mc = new Memcached( $persistent_id );
+		// Setup Memcached object
+		if ( class_exists( 'Memcached' ) ) {
+			if ( is_null( $persistent_id ) || ! is_string( $persistent_id ) ) {
+				$this->mc = new Memcached();
+			} else {
+				$this->mc = new Memcached( $persistent_id );
+			}
 		}
 
-		if ( isset( $memcached_servers ) ) {
-			$this->servers = $memcached_servers;
-		} else {
-			$this->servers = array( array( '127.0.0.1', 11211, 20 ) );
-		}
+		// Setup Memcached servers
+		$this->servers = isset( $memcached_servers )
+			? $memcached_servers
+			: array( array( '127.0.0.1', 11211, 20 ) );
 
 		$this->addServers( $this->servers );
 
-		/**
-		 * This approach is borrowed from Sivel and Boren. Use the salt for easy
-		 * cache invalidation and for multiple single WordPress installations on
-		 * the same server.
-		 */
+		// This approach is borrowed from Sivel and Boren. Use the salt for easy
+		// cache invalidation and for multiple single WordPress installations on
+		// the same server.
 		if ( defined( 'WP_CACHE_KEY_SALT' ) && ! empty( WP_CACHE_KEY_SALT ) ) {
 			$this->cache_key_salt = rtrim( WP_CACHE_KEY_SALT, ':' );
 		}
