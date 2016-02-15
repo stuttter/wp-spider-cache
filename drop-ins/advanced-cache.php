@@ -46,6 +46,6 @@ if ( ! empty( $GLOBALS['HTTP_RAW_POST_DATA'] ) || ! empty( $_POST ) ) {
 // Required files
 require_once WP_CONTENT_DIR . '/plugins/wp-spider-cache/includes/functions.php';
 
-// Initialize the caches
-wp_cache_init();
+// Initialize the object & output caches
+wp_object_cache_init();
 wp_output_cache_init();

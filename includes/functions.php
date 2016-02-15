@@ -873,8 +873,7 @@ function wp_cache_add_non_persistent_groups( $groups ) {
  * @return  void
  */
 function wp_cache_init() {
-	require_once 'class-object-cache.php';
-	$GLOBALS['wp_object_cache'] = new WP_Spider_Cache_Object();
+	wp_object_cache_init();
 }
 
 /**
@@ -902,11 +901,23 @@ function wp_object_cache() {
  * @global  WP_Spider_Cache_Output  $wp_object_cache   WordPress Object Cache
  * @return  void
  */
+function wp_object_cache_init() {
+	require_once 'class-object-cache.php';
+	$GLOBALS['wp_object_cache'] = new WP_Spider_Cache_Object();
+}
+
+/**
+ * Sets up Output Cache Global and assigns it.
+ *
+ * @since 2.1.0
+ *
+ * @global  WP_Spider_Cache_Output  $wp_object_cache   WordPress Object Cache
+ * @return  void
+ */
 function wp_output_cache_init() {
 	require_once 'class-output-cache.php';
 	$GLOBALS['wp_output_cache'] = new WP_Spider_Cache_Output();
 }
-
 
 /**
  * Returns the Output Cache Global.
@@ -923,4 +934,46 @@ function wp_output_cache() {
 	}
 
 	return $GLOBALS['wp_output_cache'];
+}
+
+/**
+ * Should we skip the output cache?
+ *
+ * @since 2.1.0
+ *
+ * @return boolean
+ */
+function wp_skip_output_cache() {
+
+	// Bail if caching not turned on
+	if ( ! defined( 'WP_CACHE' ) || ( true !== WP_CACHE ) ) {
+		return true;
+	}
+
+	// Bail if no content directory
+	if ( ! defined( 'WP_CONTENT_DIR' ) ) {
+		return true;
+	}
+
+	// Never cache interactive scripts or API endpoints.
+	if ( in_array( basename( $_SERVER['SCRIPT_FILENAME'] ), array(
+		'wp-app.php',
+		'wp-cron.php',
+		'ms-files.php',
+		'xmlrpc.php',
+	) ) ) {
+		return true;
+	}
+
+	// Never cache JavaScript generators
+	if ( strstr( $_SERVER['SCRIPT_FILENAME'], 'wp-includes/js' ) ) {
+		return true;
+	}
+
+	// Never cache when POST data is present.
+	if ( ! empty( $GLOBALS['HTTP_RAW_POST_DATA'] ) || ! empty( $_POST ) ) {
+		return true;
+	}
+
+	return false;
 }
