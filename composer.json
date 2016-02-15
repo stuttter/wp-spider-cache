@@ -1,0 +1,17 @@
+{
+  "name": "stuttter/wp-spider-cache",
+  "description": "Your friendly neighborhood caching solution for WordPress",
+  "homepage": "https://github.com/stuttter/wp-spider-cache",
+  "type": "wordpress-plugin",
+  "require": {
+    "php": ">=5.2",
+    "composer/installers": "^1.0"
+  },
+  "license": "GPLv2 or later",
+  "authors": [
+    {
+      "name": "John James Jacoby",
+      "email": "johnjamesjacoby@me.com"
+    }
+  ]
+}

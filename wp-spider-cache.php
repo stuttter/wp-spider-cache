@@ -907,5 +907,5 @@ class WP_Spider_Cache_UI {
 	}
 }
 
-// With great power comes great responisibilty.
+// Go web. Fly. Up, up, and away web! Shazam! Go! Go! Go web go! Tally ho!
 new WP_Spider_Cache_UI();
