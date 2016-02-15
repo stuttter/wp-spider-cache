@@ -14,6 +14,11 @@ defined( 'ABSPATH' ) || exit;
 // Define globals
 global $spider_cache;
 
+// Bail if caching not turned on
+if ( ! defined( 'WP_CACHE' ) || ( true !== WP_CACHE ) ) {
+	return;
+}
+
 // Bail if no content directory
 if ( ! defined( 'WP_CONTENT_DIR' ) ) {
 	return;
