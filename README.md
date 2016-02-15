@@ -19,17 +19,21 @@ It comes with:
 
 # FAQ
 
-### Does this work with multisite?
+### Does this work with on single-site, multi-site, and multi-network installations?
 
-Yes.
+Yes. Yes. Yes.
 
-### Does this work with multiple networks?
+### Does this work with BuddyPress, bbPress, and GlotPress?
 
-Yes.
+Yes. Yes. Yes.
 
-### Does this work with BuddyPress & bbPress?
+### What other plugins has this been tested with?
 
-Yes.
+* EasyDigitalDownloads
+* WooCommerce
+* Jetpack
+* All Stuttter plugins
+* Keyring
 
 ### Credits
 
