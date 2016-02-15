@@ -119,6 +119,7 @@ class WP_Spider_Cache_UI {
 
 		// Load page on hook
 		add_action( "load-{$this->hook}", array( $this, 'load' ) );
+		add_action( "load-{$this->hook}", array( $this, 'help' ) );
 
 		// Enqueue assets, not by hook unfortunately
 		add_action( 'admin_enqueue_scripts', array( $this, 'admin_enqueue' ) );
@@ -356,6 +357,75 @@ class WP_Spider_Cache_UI {
 	public function load() {
 		$this->maybe_clear_cache_group( true );
 		$this->maybe_clear_user_cache( true );
+	}
+
+	/**
+	 * Help text
+	 *
+	 * @since 2.1.0
+	 */
+	public function help() {
+
+		// Overview
+		get_current_screen()->add_help_tab( array(
+			'id'      => 'overview',
+			'title'   => esc_html__( 'Overview', 'wp-spider-cache' ),
+			'content' =>
+				'<p>' . esc_html__( 'All the cached objects and output is listed alphabetically in Spider Cache, starting with global groups and ending with this specific site.',   'wp-spider-cache' ) . '</p>' .
+				'<p>' . esc_html__( 'You can narrow the list by searching for specific group & key names.', 'wp-spider-cache' ) . '</p>'
+		) );
+
+		// Using cache key salt
+		if ( defined( 'WP_CACHE_KEY_SALT' ) && ! empty( WP_CACHE_KEY_SALT ) ) {
+			get_current_screen()->add_help_tab( array(
+				'id'      => 'salt',
+				'title'   => esc_html__( 'Cache Key', 'wp-spider-cache' ),
+				'content' =>
+					'<p>' . sprintf( esc_html__( 'A Cache Key Salt was identified: %s.', 'wp-spider-cache' ), '<code>' . WP_CACHE_KEY_SALT . '</code>' ) . '</p>'
+			) );
+		}
+
+		// Servers
+		get_current_screen()->add_help_tab( array(
+			'id'      => 'servers',
+			'title'   => esc_html__( 'Servers', 'wp-spider-cache' ),
+			'content' =>
+				'<p>' . esc_html__( 'Choose a registered cache server from the list. Content from that server is automatically retrieved & presented in the table.', 'wp-spider-cache' ) . '</p>' .
+				'<p>' . esc_html__( 'It is possible to have more than one cache server, and each server may have different cached content available to it.', 'wp-spider-cache' ) . '</p>' .
+				'<p>' . esc_html__( 'Clicking "Refresh" will fetch fresh data from the selected server, and repopulate the table.', 'wp-spider-cache' ) . '</p>'
+		) );
+
+		// Screen Content
+		get_current_screen()->add_help_tab( array(
+			'id'		=> 'content',
+			'title'		=> __( 'Screen Content', 'wp-spider-cache' ),
+			'content'	=>
+				'<p>'  . esc_html__( 'Cached content is displayed in the following way:', 'wp-spider-cache' ) . '</p><ul>' .
+				'<li>' . esc_html__( 'Cache groups are listed alphabetically.', 'wp-spider-cache' ) . '</li>' .
+				'<li>' . esc_html__( 'Global cache groups will be shown first.', 'wp-spider-cache' ) . '</li>' .
+				'<li>' . esc_html__( 'Cache groups for this specific site are shown last.', 'wp-spider-cache' ) . '</li></ul>'
+		) );
+
+		// Available actions
+		get_current_screen()->add_help_tab( array(
+			'id'      => 'actions',
+			'title'   => __( 'Available Actions', 'wp-spider-cache' ),
+			'content' =>
+				'<p>'  . esc_html__( 'Hovering over a row in the list will display action links that allow you to manage that content. You can perform the following actions:', 'wp-spider-cache' ) . '</strong></p><ul>' .
+				'<li>' .         __( '<strong>Search</strong> for content within the list.', 'wp-spider-cache' ) . '</li>' .
+				'<li>' .         __( '<strong>Clear</strong> many caches at the same time, by group or user ID.', 'wp-spider-cache' ) . '</li>' .
+				'<li>' .         __( '<strong>Flush</strong> an entire cache group to remove all of the subsequent keys.', 'wp-spider-cache' ) . '</li>' .
+				'<li>' .         __( '<strong>Remove</strong> a single cache key from within a cache group.', 'wp-spider-cache' ) . '</li>' .
+				'<li>' .         __( '<strong>View</strong> the contents of a single cache key.', 'wp-spider-cache' ) . '</li></ul>'
+		) );
+
+		// Help Sidebar
+		get_current_screen()->set_help_sidebar(
+			'<p><i class="dashicons dashicons-wordpress"></i> '     . esc_html__( 'Blog ID',     'wp-spider-cache' ) . '</p>' .
+			'<p><i class="dashicons dashicons-admin-site"></i> '    . esc_html__( 'Cache Group', 'wp-spider-cache' ) . '</p>' .
+			'<p><i class="dashicons dashicons-admin-network"></i> ' . esc_html__( 'Keys',        'wp-spider-cache' ) . '</p>' .
+			'<p><i class="dashicons dashicons-editor-code"></i> '   . esc_html__( 'Count',       'wp-spider-cache' ) . '</p>'
+		);
 	}
 
 	/**
@@ -869,15 +939,6 @@ class WP_Spider_Cache_UI {
 	 * @since 2.0.0
 	 */
 	public function notice() {
-
-		// Using cache key salt
-		if ( defined( 'WP_CACHE_KEY_SALT' ) && ! empty( WP_CACHE_KEY_SALT ) ) : ?>
-
-			<div id="message" class="notice notice-info">
-				<p><?php printf( esc_html__( 'Using cache-key salt: %s', 'wp-spider-cache' ), WP_CACHE_KEY_SALT ); ?></p>
-			</div>
-
-		<?php endif;
 
 		// Bail if no notice
 		if ( ! isset( $_GET['cache_cleared'] ) ) {
