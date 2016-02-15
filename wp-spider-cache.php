@@ -8,7 +8,7 @@
  * License:     GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Description: Your friendly neighborhood caching solution for WordPress
- * Version:     2.0.0
+ * Version:     2.1.0
  * Text Domain: wp-spider-cache
  * Domain Path: /assets/lang/
  */

@@ -1,9 +1,10 @@
 <?php
 
 /**
- * Spider Cache Output Cache
- *
- * @package Plugins/Cache/Output
+ * Plugin name: Spider-Cache
+ * Plugin URI:  https://wordpress.org/plugins/wp-spider-cache/
+ * Description: Fully rendered pages stored in & served from Memcached.
+ * Version:     2.1.0
  */
 
 // Exit if accessed directly

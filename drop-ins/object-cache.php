@@ -1,9 +1,10 @@
 <?php
 
 /**
- * Spider Cache Object Cache
- *
- * @package Plugins/Cache/Object
+ * Plugin name: Spider-Cache
+ * Plugin URI:  https://wordpress.org/plugins/wp-spider-cache/
+ * Description: Objects stored in & served from Memcached.
+ * Version:     2.1.0
  */
 
 // Exit if accessed directly

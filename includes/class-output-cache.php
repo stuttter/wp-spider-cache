@@ -1,14 +1,13 @@
 <?php
 
 /**
- * Plugin name: Spider-Cache
- * Plugin URI:  https://store.flox.io/plugins/spider-cache/
- * Description: Fully rendered pages stored in & served from Memcache.
- * Version:     2.0.0
+ * Spider Cache Output Cache
+ *
+ * @package Plugins/Cache/Output
  */
 
-// WordPress or bust
-defined( 'ABSPATH' ) || exit();
+// Exit if accessed directly
+defined( 'ABSPATH' ) || exit;
 
 /**
  * The main Spider-Cache output cache class
@@ -125,7 +124,7 @@ class WP_Spider_Cache_Output {
 	public $cache_control = true;
 
 	/**
-	 * Change this to cancel the output buffer. Use spider_cache_cancel();
+	 * Change this to cancel the output buffer. Use wp_output_cache_cancel();
 	 *
 	 * @var bool
 	 */
