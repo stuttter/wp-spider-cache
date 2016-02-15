@@ -258,7 +258,8 @@ class WP_Spider_Cache_UI {
 
 		// Attempt to output the server contents
 		if ( ! empty( $_POST['name'] ) ) {
-			$this->do_rows( $_POST['name'] );
+			$server = filter_var( $_POST['name'], FILTER_VALIDATE_IP );
+			$this->do_rows( $server );
 		}
 
 		exit();
@@ -275,7 +276,10 @@ class WP_Spider_Cache_UI {
 		// Loop through keys and attempt to delete them
 		if ( ! empty( $_POST['keys'] ) && ! empty( $_GET['group'] ) ) {
 			foreach ( $_POST['keys'] as $key ) {
-				wp_cache_delete( $key, $_GET['group'] );
+				wp_cache_delete(
+					$this->sanitize_key( $key           ),
+					$this->sanitize_key( $_GET['group'] )
+				);
 			}
 		}
 
@@ -292,7 +296,10 @@ class WP_Spider_Cache_UI {
 
 		// Delete a key in a group
 		if ( ! empty( $_GET['key'] ) && ! empty( $_GET['group'] ) ) {
-			wp_cache_delete( $_GET['key'], $_GET['group'] );
+			wp_cache_delete(
+				$this->sanitize_key( $_GET['key']   ),
+				$this->sanitize_key( $_GET['group'] )
+			);
 		}
 
 		exit();
@@ -308,7 +315,10 @@ class WP_Spider_Cache_UI {
 
 		// Bail if invalid posted data
 		if ( ! empty( $_GET['key'] ) && ! empty( $_GET['group'] ) ) {
-			$this->do_item( $_GET['key'], $_GET['group'] );
+			$this->do_item(
+				$this->sanitize_key( $_GET['key']   ),
+				$this->sanitize_key( $_GET['group'] )
+			);
 		}
 
 		exit();
@@ -940,6 +950,22 @@ class WP_Spider_Cache_UI {
 		return function_exists( 'wp_cache_get_server_list' )
 			? wp_cache_get_server_list()
 			: array();
+	}
+
+	/**
+	 * Sanitize a user submitted cache group or key value
+	 *
+	 * This strips out unwanted and/or unexpected characters from cache keys
+	 * and groups.
+	 *
+	 * @since 2.1.2
+	 *
+	 * @param  string  $key
+	 *
+	 * @return string
+	 */
+	private function sanitize_key( $key = '' ) {
+		return preg_replace( '/[^a-z0-9:_\-]/', '', $key );
 	}
 
 	/**
