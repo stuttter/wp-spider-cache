@@ -19,7 +19,7 @@ defined( 'ABSPATH' ) || exit;
  * This Object Cache replaces WordPress's built in runtime cache by placing it
  * in the wp-content folder, and is loaded via wp-settings.php.
  */
-class WP_Object_Cache {
+class WP_Spider_Cache_Object {
 
 	/**
 	 * Holds the Memcached object.

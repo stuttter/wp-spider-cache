@@ -12,25 +12,10 @@ defined( 'ABSPATH' ) || exit;
 /** Checks ********************************************************************/
 
 // Define globals
-global $spider_cache, $wp_object_cache;
+global $spider_cache;
 
 // Bail if no content directory
 if ( ! defined( 'WP_CONTENT_DIR' ) ) {
-	return;
-}
-
-// Bail if no persistent object cache
-if ( file_exists( WP_CONTENT_DIR . '/object-cache.php' ) ) {
-	require_once WP_CONTENT_DIR . '/object-cache.php';
-	if ( ! function_exists( 'wp_cache_init' ) ) {
-		return;
-	}
-} else {
-	return;
-}
-
-// Bail if not a WP_Object_Cache drop-in
-if ( empty( $wp_object_cache ) || ! is_a( $wp_object_cache, 'WP_Object_Cache' ) ) {
 	return;
 }
 
@@ -58,11 +43,11 @@ if ( ! empty( $GLOBALS['HTTP_RAW_POST_DATA'] ) || ! empty( $_POST ) ) {
 
 // Required files
 require_once WP_CONTENT_DIR . '/plugins/wp-spider-cache/includes/functions.php';
-require_once WP_CONTENT_DIR . '/plugins/wp-spider-cache/includes/class-spider-cache.php';
+require_once WP_CONTENT_DIR . '/plugins/wp-spider-cache/includes/class-output-cache.php';
 
 // Pass in the global variable which may be an array of settings to
 // override defaults.
-$spider_cache = new Spider_Cache( $spider_cache );
+$spider_cache = new WP_Spider_Cache_Output( $spider_cache );
 
 // Never spider_cache when cookies indicate a cache-exempt visitor.
 if ( is_array( $_COOKIE ) && ! empty( $_COOKIE ) ) {
@@ -80,11 +65,6 @@ wp_cache_init();
 // Disabled
 if ( $spider_cache->max_age < 1 ) {
 	return;
-}
-
-// Make sure we can increment. If not, turn off the traffic sensor.
-if ( ! method_exists( $wp_object_cache, 'incr' ) ) {
-	$spider_cache->times = 0;
 }
 
 // Necessary to prevent clients using cached version after login cookies set.
@@ -251,8 +231,8 @@ if ( empty( $spider_cache->do ) && empty( $spider_cache->genlock ) ) {
 }
 
 // Headers and such
-$wp_filter['status_header'][10]['spider_cache']      = array( 'function' => array( &$spider_cache, 'status_header'   ), 'accepted_args' => 2 );
-$wp_filter['wp_redirect_status'][10]['spider_cache'] = array( 'function' => array( &$spider_cache, 'redirect_status' ), 'accepted_args' => 2 );
+$wp_filter['status_header'][10]['spider_cache']      = array( 'function' => array( $spider_cache, 'status_header'   ), 'accepted_args' => 2 );
+$wp_filter['wp_redirect_status'][10]['spider_cache'] = array( 'function' => array( $spider_cache, 'redirect_status' ), 'accepted_args' => 2 );
 
 // Start the spidey-sense listening
-ob_start( array( &$spider_cache, 'ob' ) );
+ob_start( array( $spider_cache, 'ob' ) );

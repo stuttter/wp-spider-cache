@@ -15,7 +15,7 @@ defined( 'ABSPATH' ) || exit();
  *
  * @todo Detail what this is and how it works
  */
-class Spider_Cache {
+class WP_Spider_Cache_Output {
 
 	/**
 	 * This is the base configuration. You can edit these variables or move them
@@ -133,7 +133,7 @@ class Spider_Cache {
 	 *
 	 * @var array
 	 */
-	public $noskip_cookies = array( TEST_COOKIE );
+	public $noskip_cookies = array();
 
 	/**
 	 * Used internally
@@ -154,7 +154,7 @@ class Spider_Cache {
 	 *
 	 * @param array $settings
 	 */
-	public function __construct( $settings ) {
+	public function __construct( $settings = array() ) {
 		if ( is_array( $settings ) ) {
 			foreach ( $settings as $k => $v ) {
 				$this->$k = $v;

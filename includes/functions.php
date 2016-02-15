@@ -873,7 +873,8 @@ function wp_cache_add_non_persistent_groups( $groups ) {
  * @return  void
  */
 function wp_cache_init() {
-	$GLOBALS['wp_object_cache'] = new WP_Object_Cache();
+	require_once 'class-object-cache.php';
+	$GLOBALS['wp_object_cache'] = new WP_Spider_Cache_Object();
 }
 
 /**
