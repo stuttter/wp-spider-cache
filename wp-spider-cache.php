@@ -382,7 +382,7 @@ class WP_Spider_Cache_UI {
 				'title'   => esc_html__( 'Cache Key', 'wp-spider-cache' ),
 				'content' =>
 					'<p>' . sprintf( esc_html__( 'A Cache Key Salt was identified: %s', 'wp-spider-cache' ), '<code>' . WP_CACHE_KEY_SALT . '</code>' ) . '</p>' .
-					'<p>' . esc_html__( 'These are used by system administrators as a way to invalidate all cached data at the same time.', 'wp-spider-cache' ) . '</p>'
+					'<p>' . __( 'This advanced configuration option is usually defined in <code>wp-config.php</code> and is commonly used as a way to invalidate all cached data for the entire installation by updating the value of the <code>WP_CACHE_KEY_SALT</code> constant.', 'wp-spider-cache' ) . '</p>'
 			) );
 		}
 
