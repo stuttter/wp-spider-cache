@@ -318,23 +318,22 @@ class WP_Spider_Cache_UI {
 	 *
 	 * @since 2.0.0
 	 *
-	 * @global WP_Object_cache $wp_object_cache
 	 * @param string $group
 	 * @return int
 	 */
 	public function clear_group( $group = '' ) {
-		global $wp_object_cache;
+		$oc = wp_object_cache();
 
 		// Setup counter
 		$cleared = 0;
 
-		foreach ( $wp_object_cache->getServerList() as $server ) {
+		foreach ( $oc->getServerList() as $server ) {
 			$port = empty( $server[1] ) ? 11211 : $server['port'];
 			$list = $this->retrieve_keys( $server['host'], $port );
 
 			foreach ( $list as $item ) {
 				if ( strstr( $item, $group . ':' ) ) {
-					$wp_object_cache->mc->delete( $item );
+					$oc->mc->delete( $item );
 					$cleared++;
 				}
 			}
@@ -494,7 +493,6 @@ class WP_Spider_Cache_UI {
 	 * @return array
 	 */
 	private function get_keymaps( $server = '' ) {
-		global $wp_object_cache;
 
 		// Use current blog ID to limit keymap scope
 		$current_blog_id = get_current_blog_id();
@@ -504,7 +502,7 @@ class WP_Spider_Cache_UI {
 		$offset  = 0;
 
 		// Offset by 1 if using cache-key salt
-		if ( ! empty( $wp_object_cache->cache_key_salt ) ) {
+		if ( ! wp_object_cache()->cache_key_salt ) {
 			$offset = 1;
 		}
 
@@ -640,12 +638,9 @@ class WP_Spider_Cache_UI {
 	 * Output the WordPress admin page
 	 *
 	 * @since 2.0.0
-	 *
-	 * @global WP_Object_cache $wp_object_cache
 	 */
 	public function page() {
-		global $wp_object_cache;
-
+		$oc                 = wp_object_cache();
 		$get_instance_nonce = wp_create_nonce( $this->get_instance_nonce ); ?>
 
 		<div class="wrap spider-cache" id="sc-wrapper">
@@ -659,8 +654,8 @@ class WP_Spider_Cache_UI {
 						<option value=""><?php esc_html_e( 'Select a Server', 'wp-spider-cache' ); ?></option><?php
 
 						// Only loop if Memcached object exists
-						if ( ! empty( $wp_object_cache->mc ) ) :
-							foreach ( $wp_object_cache->mc->getServerList() as $server ) :
+						if ( ! empty( $oc->mc ) ) :
+							foreach ( $oc->mc->getServerList() as $server ) :
 
 								?><option value="<?php echo esc_attr( $server['host'] ); ?>"><?php echo esc_html( $server['host'] ); ?></option><?php
 
