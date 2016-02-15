@@ -8,7 +8,7 @@
  * License:     GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Description: Your friendly neighborhood caching solution for WordPress
- * Version:     2.1.0
+ * Version:     2.1.1
  * Text Domain: wp-spider-cache
  * Domain Path: /assets/lang/
  */
@@ -39,7 +39,7 @@ class WP_Spider_Cache_UI {
 	 *
 	 * @var string
 	 */
-	private $version = '201602150002';
+	private $version = '201602150003';
 
 	/**
 	 * Nonce ID for getting the Memcached instance

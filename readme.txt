@@ -3,7 +3,7 @@ Contributors: johnjamesjacoby, stuttter
 Tags: cache, object, output, admin, memcache, memcached
 Requires at least: 4.4
 Tested up to: 4.4
-Stable tag: 2.0.0
+Stable tag: 2.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=9Q4F4EL5YJ62J
@@ -85,6 +85,9 @@ The WordPress support forums: https://wordpress.org/support/plugin/wp-spider-cac
 http://github.com/stuttter/wp-spider-cache
 
 == Changelog ==
+
+= 2.1.1 =
+* Saniity checks for Memcached & drop-ins
 
 = 2.1.0 =
 * Refactor drop-ins
