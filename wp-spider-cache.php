@@ -87,17 +87,18 @@ class WP_Spider_Cache_UI {
 		// Setup the plugin URL, for enqueues
 		$this->url = plugin_dir_url( __FILE__ );
 
-		// WP
-		add_action( 'admin_menu', array( $this, 'admin_menu' ) );
+		// Notices
+		add_action( 'spider_cache_notice', array( $this, 'notice' ) );
+
+		// Admin area UI
+		add_action( 'admin_menu',            array( $this, 'admin_menu'    ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'admin_enqueue' ) );
 
 		// AJAX
 		add_action( 'wp_ajax_sc-get-item',     array( $this, 'ajax_get_mc_item'     ) );
 		add_action( 'wp_ajax_sc-get-instance', array( $this, 'ajax_get_mc_instance' ) );
 		add_action( 'wp_ajax_sc-flush-group',  array( $this, 'ajax_flush_mc_group'  ) );
 		add_action( 'wp_ajax_sc-remove-item',  array( $this, 'ajax_remove_mc_item'  ) );
-
-		// SC
-		add_action( 'spider_cache_notice', array( $this, 'notice' ) );
 	}
 
 	/**
@@ -120,9 +121,6 @@ class WP_Spider_Cache_UI {
 		// Load page on hook
 		add_action( "load-{$this->hook}", array( $this, 'load' ) );
 		add_action( "load-{$this->hook}", array( $this, 'help' ) );
-
-		// Enqueue assets, not by hook unfortunately
-		add_action( 'admin_enqueue_scripts', array( $this, 'admin_enqueue' ) );
 	}
 
 	/**
@@ -137,12 +135,9 @@ class WP_Spider_Cache_UI {
 			return;
 		}
 
-		// Use thickboxes
-		add_thickbox();
-
 		// Enqueue
-		wp_enqueue_style( 'wp-spider-cache', $this->url . 'assets/css/spider-cache.css', array(), $this->version );
-		wp_enqueue_script( 'wp-spider-cache', $this->url . 'assets/js/spider-cache.js', array(), $this->version, true );
+		wp_enqueue_style( 'wp-spider-cache', $this->url . 'assets/css/spider-cache.css', array(),          $this->version );
+		wp_enqueue_script( 'wp-spider-cache', $this->url . 'assets/js/spider-cache.js', array( 'jquery' ), $this->version, true );
 
 		// Localize JS
 		wp_localize_script( 'wp-spider-cache', 'WP_Spider_Cache', array(
@@ -328,18 +323,20 @@ class WP_Spider_Cache_UI {
 	 * @return int
 	 */
 	public function clear_group( $group = '' ) {
-		$oc = wp_object_cache();
 
 		// Setup counter
 		$cleared = 0;
+		$servers = $this->get_servers();
 
-		foreach ( $oc->getServerList() as $server ) {
+		// Loop through servers
+		foreach ( $servers as $server ) {
 			$port = empty( $server[1] ) ? 11211 : $server['port'];
 			$list = $this->retrieve_keys( $server['host'], $port );
 
+			// Loop through items
 			foreach ( $list as $item ) {
-				if ( strstr( $item, $group . ':' ) ) {
-					$oc->mc->delete( $item );
+				if ( strstr( $item, "{$group}:" ) ) {
+					wp_cache_delete( $item );
 					$cleared++;
 				}
 			}
@@ -722,7 +719,7 @@ class WP_Spider_Cache_UI {
 	 * @since 2.0.0
 	 */
 	public function page() {
-		$oc                 = wp_object_cache();
+		$servers            = $this->get_servers();
 		$get_instance_nonce = wp_create_nonce( $this->get_instance_nonce ); ?>
 
 		<div class="wrap spider-cache" id="sc-wrapper">
@@ -735,14 +732,12 @@ class WP_Spider_Cache_UI {
 					<select class="sc-server-selector" data-nonce="<?php echo $get_instance_nonce ?>">
 						<option value=""><?php esc_html_e( 'Select a Server', 'wp-spider-cache' ); ?></option><?php
 
-						// Only loop if Memcached object exists
-						if ( ! empty( $oc->mc ) ) :
-							foreach ( $oc->mc->getServerList() as $server ) :
+						// Loop through servers
+						foreach ( $servers as $server ) :
 
-								?><option value="<?php echo esc_attr( $server['host'] ); ?>"><?php echo esc_html( $server['host'] ); ?></option><?php
+							?><option value="<?php echo esc_attr( $server['host'] ); ?>"><?php echo esc_html( $server['host'] ); ?></option><?php
 
-							endforeach;
-						endif;
+						endforeach;
 
 					?></select>
 					<button class="button action sc-refresh-instance" disabled><?php esc_html_e( 'Refresh', 'wp-spider-cache' ); ?></button>
@@ -932,6 +927,19 @@ class WP_Spider_Cache_UI {
 
 		// Return the output buffer
 		return ob_get_clean();
+	}
+
+	/**
+	 * Return list of servers, if function exists
+	 *
+	 * @since 2.1.1
+	 *
+	 * @return array
+	 */
+	private function get_servers() {
+		return function_exists( 'wp_cache_get_server_list' )
+			? wp_cache_get_server_list()
+			: array();
 	}
 
 	/**
