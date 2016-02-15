@@ -31,6 +31,15 @@ Yes.
 
 Yes.
 
+### Credits
+
+This plugin is largely inspired by:
+
+* Memcached
+* Batcache
+* Super Cache
+* Johnny Cache
+
 ### Where can I get support?
 
 The WordPress support forums: https://wordpress.org/support/plugin/wp-spider-cache.

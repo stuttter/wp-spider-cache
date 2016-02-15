@@ -36,6 +36,15 @@ It comes with:
 * [WP User Activity](https://wordpress.org/plugins/wp-user-activity/ "The best way to log activity in WordPress.")
 * [WP User Avatars](https://wordpress.org/plugins/wp-user-avatars/ "Allow users to upload avatars or choose them from your media library.")
 
+= Credits =
+
+This plugin is largely inspired by:
+
+* Memcached
+* Batcache
+* Super Cache
+* Johnny Cache
+
 == Screenshots ==
 
 1. Admin UI
