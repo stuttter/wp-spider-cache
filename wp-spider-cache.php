@@ -949,32 +949,50 @@ class WP_Spider_Cache_UI {
 	 */
 	public function notice() {
 
+		// Default status & message
+		$status  = 'notice-warning';
+		$message = '';
+
 		// Bail if no notice
-		if ( ! isset( $_GET['cache_cleared'] ) ) {
-			return;
+		if ( isset( $_GET['cache_cleared'] ) ) {
+
+			// Cleared
+			$keys = isset( $_GET['keys_cleared'] )
+				? (int) $_GET['keys_cleared']
+				: 0;
+
+			// Cache
+			$cache = isset( $_GET['cache_cleared'] )
+				? $_GET['cache_cleared']
+				: 'none returned';
+
+			// Success
+			$status = 'notice-success';
+
+			// Assemble the message
+			$message = sprintf(
+				esc_html__( 'Cleared %s keys from %s group(s).', 'wp-spider-cache' ),
+				'<strong>' . esc_html( $keys  ) . '</strong>',
+				'<strong>' . esc_html( $cache ) . '</strong>'
+			);
 		}
 
-		// Cleared
-		$keys = isset( $_GET['keys_cleared'] )
-			? (int) $_GET['keys_cleared']
-			: 0;
+		// No Memcached
+		if ( ! class_exists( 'Memcached' ) ) {
+			$message = esc_html__( 'Please install the Memcached extension.', 'wp-spider-cache' );
+		}
 
-		// Cache
-		$cache = isset( $_GET['cache_cleared'] )
-			? $_GET['cache_cleared']
-			: 'none returned';
+		// No object cache
+		if ( ! function_exists( 'wp_object_cache' ) ) {
+			$message .= sprintf( esc_html__( 'Hmm. It looks like you do not have a persistent object cache installed. Did you forget to copy the drop-in plugins to %s?', 'wp-spider-cache' ), '<code>' . str_replace( ABSPATH, '', WP_CONTENT_DIR ) . '</code>' );
+		}
 
-		// Assemble the message
-		$message = sprintf(
-			esc_html__( 'Cleared %s keys from %s group(s).', 'wp-spider-cache' ),
-			'<strong>' . esc_html( $keys  ) . '</strong>',
-			'<strong>' . esc_html( $cache ) . '</strong>'
-		);
+		// Bail if no message
+		if ( empty( $message ) ) {
+			return;
+		} ?>
 
-		// Cache cleared
-		?>
-
-		<div id="message" class="notice notice-success">
+		<div id="message" class="notice <?php echo $status; ?>">
 			<p><?php echo $message; ?></p>
 		</div>
 
