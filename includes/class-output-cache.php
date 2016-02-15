@@ -465,7 +465,7 @@ HTML;
 			'path'   => ( $this->pos = strpos( $_SERVER['REQUEST_URI'], '?' ) ) ? substr( $_SERVER['REQUEST_URI'], 0, $this->pos ) : $_SERVER['REQUEST_URI'],
 			'query'  => $this->query,
 			'extra'  => $this->unique,
-			'ssl'    => is_ssl()
+			'ssl'    => $this->is_ssl()
 		);
 
 		// Recreate the permalink from the URL
@@ -612,5 +612,26 @@ HTML;
 
 		// Start the spidey-sense listening
 		ob_start( array( $this, 'ob' ) );
+	}
+
+	/**
+	 * Determine if SSL is used.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return bool True if SSL, false if not used.
+	 */
+	private function is_ssl() {
+		if ( isset( $_SERVER['HTTPS'] ) ) {
+			if ( 'on' == strtolower( $_SERVER['HTTPS'] ) ) {
+				return true;
+			}
+			if ( '1' == $_SERVER['HTTPS'] ) {
+				return true;
+			}
+		} elseif ( isset( $_SERVER['SERVER_PORT'] ) && ( '443' == $_SERVER['SERVER_PORT'] ) ) {
+			return true;
+		}
+		return false;
 	}
 }
