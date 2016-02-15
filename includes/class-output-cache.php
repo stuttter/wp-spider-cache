@@ -31,12 +31,11 @@ class WP_Spider_Cache_Output {
 	public $max_age = 600;
 
 	/**
-	 * Zero disables sending buffers to remote datacenters
-	 * (req/sec is never sent)
+	 * False disables sending buffers to remote datacenters
 	 *
-	 * @var int
+	 * @var bool
 	 */
-	public $remote = 0;
+	public $remote = true;
 
 	/**
 	 * Only spider_cache a page after it is accessed this many times...
@@ -171,15 +170,37 @@ class WP_Spider_Cache_Output {
 		$this->start();
 	}
 
-	public function status_header( $status_header, $status_code ) {
+	/**
+	 * Set the status header & code
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param  string  $status_header
+	 * @param  int     $status_code
+	 *
+	 * @return string
+	 */
+	public function status_header( $status_header, $status_code = 200 ) {
 		$this->status_header = $status_header;
-		$this->status_code   = $status_code;
+		$this->status_code   = (int) $status_code;
 
 		return $status_header;
 	}
 
+	/**
+	 * Set the redirect status, and whether it should be cached
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param string $status
+	 * @param string $location
+	 *
+	 * @return type
+	 */
 	public function redirect_status( $status, $location ) {
-		if ( $this->cache_redirects ) {
+
+		// Cache this redirect
+		if ( true === $this->cache_redirects ) {
 			$this->redirect_status   = $status;
 			$this->redirect_location = $location;
 		}
@@ -187,7 +208,15 @@ class WP_Spider_Cache_Output {
 		return $status;
 	}
 
-	public function do_headers( $headers1, $headers2 = array() ) {
+	/**
+	 * Merge the headers and send them off
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array $headers1
+	 * @param array $headers2
+	 */
+	protected function do_headers( $headers1, $headers2 = array() ) {
 
 		// Merge the arrays of headers into one
 		$headers = array();
@@ -211,7 +240,7 @@ class WP_Spider_Cache_Output {
 		foreach ( $headers as $k => $values ) {
 			$clobber = true;
 			foreach ( $values as $v ) {
-				header( "$k: $v", $clobber );
+				header( "{$k}: {$v}", $clobber );
 				$clobber = false;
 			}
 		}
@@ -219,10 +248,12 @@ class WP_Spider_Cache_Output {
 
 	/**
 	 * Configure the memcached client
+	 *
+	 * @since 2.0.0
 	 */
-	public function configure_groups() {
+	protected function configure_groups() {
 
-		if ( ! $this->remote ) {
+		if ( false === $this->remote ) {
 			if ( function_exists( 'wp_cache_add_no_remote_groups' ) ) {
 				wp_cache_add_no_remote_groups( array( $this->group ) );
 			}
@@ -234,35 +265,24 @@ class WP_Spider_Cache_Output {
 	}
 
 	/**
-	 * Defined here because timer_stop() calls number_format_i18n()
+	 * Start the output buffer
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param string $output
+	 * @return string
 	 */
-	public function timer_stop( $display = 0, $precision = 3 ) {
-		global $timestart, $timeend;
+	protected function ob( $output = '' ) {
 
-		$mtime     = microtime();
-		$mtime     = explode( ' ',$mtime );
-		$mtime     = $mtime[1] + $mtime[0];
-		$timeend   = $mtime;
-		$timetotal = $timeend-$timestart;
-		$r         = number_format( $timetotal, $precision );
-
-		if ( ! empty( $display ) ) {
-			echo $r;
-		}
-
-		return $r;
-	}
-
-	public function ob( $output ) {
-
-		if ( false !== $this->cancel ) {
+		// Bail if cancelling
+		if ( true === $this->cancel ) {
 			return $output;
 		}
 
 		// PHP5 and objects disappearing before output buffers?
 		wp_cache_init();
 
-		// Remember, $wp_object_cache was clobbered in wp-settings.php so we have to repeat this.
+		// $wp_object_cache was clobbered in wp-settings.php so repeat this
 		$this->configure_groups();
 
 		// Unlock regeneration
@@ -279,6 +299,7 @@ class WP_Spider_Cache_Output {
 			return $output;
 		}
 
+		// Variants and keys
 		$this->do_variants( $this->vary );
 		$this->generate_keys();
 
@@ -294,13 +315,10 @@ class WP_Spider_Cache_Output {
 			'version'           => $this->url_version
 		);
 
-		if ( function_exists( 'headers_list' ) ) {
-			foreach ( headers_list() as $header ) {
-				list( $k, $v ) = array_map( 'trim', explode( ':', $header, 2 ) );
-				$cache['headers'][ $k ] = $v;
-			}
-		} elseif ( function_exists( 'apache_response_headers' ) ) {
-			$cache['headers'] = apache_response_headers();
+		// PHP5 and higher (
+		foreach ( headers_list() as $header ) {
+			list( $k, $v ) = array_map( 'trim', explode( ':', $header, 2 ) );
+			$this->cache['headers'][ $k ] = $v;
 		}
 
 		if ( ! empty( $this->cache['headers'] ) && ! empty( $this->uncached_headers ) ) {
@@ -311,7 +329,7 @@ class WP_Spider_Cache_Output {
 
 		foreach ( $this->cache['headers'] as $header => $values ) {
 
-			// Do not cache if cookies were set
+			// Bail if cookies were set
 			if ( strtolower( $header ) === 'set-cookie' ) {
 				return $output;
 			}
@@ -323,18 +341,21 @@ class WP_Spider_Cache_Output {
 			}
 		}
 
+		// Set max-age
 		$this->cache['max_age'] = $this->max_age;
 
+		// Set cache
 		wp_cache_set( $this->key, $this->cache, $this->group, $this->max_age + $this->seconds + 30 );
 
-		if ( $this->cache_control ) {
+		// Cache control
+		if ( true === $this->cache_control ) {
 
 			// Don't clobber Last-Modified header if already set, e.g. by WP::send_headers()
 			if ( ! isset( $this->cache['headers']['Last-Modified'] ) ) {
 				header( 'Last-Modified: ' . gmdate( 'D, d M Y H:i:s', $this->cache['time'] ) . ' GMT', true );
 			}
 
-			if ( ! isset($this->cache['headers']['Cache-Control']) ) {
+			if ( ! isset( $this->cache['headers']['Cache-Control'] ) ) {
 				header( "Cache-Control: max-age={$this->max_age}, must-revalidate", false );
 			}
 		}
@@ -350,12 +371,26 @@ class WP_Spider_Cache_Output {
 		return $this->cache['output'];
 	}
 
-	public function add_variant( $function ) {
+	/**
+	 * Add a variant to the cache key
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param string $function
+	 */
+	protected function add_variant( $function = '' ) {
 		$key = md5( $function );
 		$this->vary[ $key ] = $function;
 	}
 
-	public function do_variants( $dimensions = false ) {
+	/**
+	 * Set the cache with it's variant keys
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param type $dimensions
+	 */
+	protected function do_variants( $dimensions = false ) {
 
 		// This function is called without arguments early in the page load,
 		// then with arguments during the OB handler.
@@ -375,43 +410,66 @@ class WP_Spider_Cache_Output {
 		}
 	}
 
-	public function generate_keys() {
-		//ksort($this->keys); // uncomment this when traffic is slow
+	/**
+	 * Generate cache keys for the request
+	 *
+	 * @since 2.0.0
+	 */
+	protected function generate_keys() {
 		$this->key     = md5( serialize( $this->keys ) );
 		$this->req_key = $this->key . '_req';
 	}
 
-	public function add_debug_just_cached() {
+	/**
+	 * Add some debug info
+	 *
+	 * @since 2.0.0
+	 */
+	protected function add_debug_just_cached() {
 		$generation = $this->cache['timer'];
 		$bytes      = strlen( serialize( $this->cache ) );
 		$html       = <<<HTML
 <!--
-	generated in $generation seconds
-	$bytes bytes spider_cached for {$this->max_age} seconds
+	generated in {$generation} seconds
+	{$bytes} bytes Spider-Cached for {$this->max_age} seconds
 -->
 
 HTML;
 		$this->add_debug_html_to_output( $html );
 	}
 
-	public function add_debug_from_cache() {
+	/**
+	 * Add verbose debug info
+	 *
+	 * @since 2.0.0
+	 */
+	protected function add_debug_from_cache() {
 		$seconds_ago = time() - $this->cache['time'];
 		$generation  = $this->cache['timer'];
 		$serving     = $this->timer_stop( false, 3 );
 		$expires     = $this->cache['max_age'] - time() + $this->cache['time'];
 		$html        = <<<HTML
 <!--
-	generated $seconds_ago seconds ago
-	generated in $generation seconds
-	served from spider_cache in $serving seconds
-	expires in $expires seconds
+	generated {$seconds_ago} seconds ago
+	generated in {$generation} seconds
+	served from Spider-Cache in {$serving} seconds
+	expires in {$expires} seconds
 -->
 
 HTML;
 		$this->add_debug_html_to_output( $html );
 	}
 
-	public function add_debug_html_to_output( $debug_html ) {
+	/**
+	 * Determine where to put what debug output
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param string $debug_html
+	 * @return void
+	 */
+	public function add_debug_html_to_output( $debug_html = '' ) {
+
 		// Casing on the Content-Type header is inconsistent
 		foreach ( array( 'Content-Type', 'Content-type' ) as $key ) {
 			if ( isset( $this->cache['headers'][ $key ][0] ) && 0 !== strpos( $this->cache['headers'][ $key ][0], 'text/html' ) ) {
@@ -423,9 +481,17 @@ HTML;
 		if ( false === $head_position ) {
 			return;
 		}
+
 		$this->cache['output'] = substr_replace( $this->cache['output'], $debug_html, $head_position, 0 );
 	}
 
+	/**
+	 * Start page caching and hook into requests to complete it later
+	 *
+	 * @since 2.1.0
+	 *
+	 * @return void
+	 */
 	public function start() {
 
 		// Bail if cookies indicate a cache-exempt visitor
@@ -588,11 +654,13 @@ HTML;
 
 			$this->do_headers( $this->headers, $this->cache['headers'] );
 
+			// Bail if not modified
 			if ( true === $three_oh_four ) {
 				header( "HTTP/1.1 304 Not Modified", true, 304 );
 				die;
 			}
 
+			// Set header if cached
 			if ( ! empty( $this->cache['status_header'] ) ) {
 				header( $this->cache['status_header'], true );
 			}
@@ -606,6 +674,8 @@ HTML;
 			return;
 		}
 
+		global $wp_filter;
+
 		// Headers and such
 		$wp_filter['status_header'][10]['spider_cache']      = array( 'function' => array( $this, 'status_header'   ), 'accepted_args' => 2 );
 		$wp_filter['wp_redirect_status'][10]['spider_cache'] = array( 'function' => array( $this, 'redirect_status' ), 'accepted_args' => 2 );
@@ -615,7 +685,10 @@ HTML;
 	}
 
 	/**
-	 * Determine if SSL is used.
+	 * Determine if SSL is used
+	 *
+	 * This is a private copy of is_ssl() because it's not available when we
+	 * need it.
 	 *
 	 * @since 2.0.0
 	 *
@@ -623,15 +696,37 @@ HTML;
 	 */
 	private function is_ssl() {
 		if ( isset( $_SERVER['HTTPS'] ) ) {
-			if ( 'on' == strtolower( $_SERVER['HTTPS'] ) ) {
+			if ( 'on' === strtolower( $_SERVER['HTTPS'] ) ) {
 				return true;
 			}
-			if ( '1' == $_SERVER['HTTPS'] ) {
+			if ( '1' === $_SERVER['HTTPS'] ) {
 				return true;
 			}
 		} elseif ( isset( $_SERVER['SERVER_PORT'] ) && ( '443' == $_SERVER['SERVER_PORT'] ) ) {
 			return true;
 		}
 		return false;
+	}
+
+	/**
+	 * Defined here because timer_stop() calls number_format_i18n()
+	 *
+	 * @since 2.0.0
+	 */
+	private function timer_stop( $display = 0, $precision = 3 ) {
+		global $timestart, $timeend;
+
+		$mtime     = microtime();
+		$mtime     = explode( ' ',$mtime );
+		$mtime     = $mtime[1] + $mtime[0];
+		$timeend   = $mtime;
+		$timetotal = $timeend-$timestart;
+		$r         = number_format( $timetotal, $precision );
+
+		if ( ! empty( $display ) ) {
+			echo $r;
+		}
+
+		return $r;
 	}
 }
