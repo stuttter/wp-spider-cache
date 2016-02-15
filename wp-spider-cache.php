@@ -211,9 +211,14 @@ class WP_Spider_Cache_UI {
 		// Get the user
 		$_user = get_user_by( $by, $_GET['user_id'] );
 
+		// Bail if no user found
+		if ( empty( $_user ) ) {
+			return;
+		}
+
 		// Delete user caches
-		wp_cache_delete( $_GET['user_id'],      'users'      );
-		wp_cache_delete( $_GET['user_id'],      'user_meta'  );
+		wp_cache_delete( $_user->ID,            'users'      );
+		wp_cache_delete( $_user->ID,            'user_meta'  );
 		wp_cache_delete( $_user->user_login,    'userlogins' );
 		wp_cache_delete( $_user->user_nicename, 'userslugs'  );
 		wp_cache_delete( $_user->user_email,    'useremail'  );
@@ -226,7 +231,7 @@ class WP_Spider_Cache_UI {
 		// Assemble the URL
 		$url = add_query_arg( array(
 			'keys_cleared'  => '2',
-			'cache_cleared' => $_GET['user_id']
+			'cache_cleared' => $_user->ID
 		), menu_page_url( 'wp-spider-cache', false ) );
 
 		// Redirect
@@ -685,12 +690,12 @@ class WP_Spider_Cache_UI {
 				</div>
 				<div class="alignright">
 					<form action="<?php menu_page_url( 'wp-spider-cache' ) ?>" method="get">
-						<input type="hidden" name="page" value="spider-cache">
+						<input type="hidden" name="page" value="wp-spider-cache">
 						<input type="text" name="cache_group" />
 						<button class="button"><?php esc_html_e( 'Clear Cache Group', 'wp-spider-cache' ); ?></button>
 					</form>
 					<form action="<?php menu_page_url( 'wp-spider-cache' ) ?>" method="get">
-						<input type="hidden" name="page" value="spider-cache">
+						<input type="hidden" name="page" value="wp-spider-cache">
 						<input type="text" name="user_id" />
 						<button class="button"><?php esc_html_e( 'Clear User Cache', 'wp-spider-cache' ); ?></button>
 					</form>
