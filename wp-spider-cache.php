@@ -524,13 +524,13 @@ class WP_Spider_Cache_UI {
 
 		// Combine results
 		$results =
-			sprintf( __( 'Key:     %s',      'wp-spider-cache' ), $key            ) . "\n" .
-			sprintf( __( 'Group:   %s',      'wp-spider-cache' ), $group          ) . "\n" .
-			sprintf( __( 'Full:    %s',      'wp-spider-cache' ), $full           ) . "\n" .
-			sprintf( __( 'Code:    %s - %s', 'wp-spider-cache' ), $code, $message ) . "\n" .
-			sprintf( __( 'Value:   %s',      'wp-spider-cache' ), $value          ); ?>
+			sprintf( esc_html__( 'Key:     %s',      'wp-spider-cache' ), $key            ) . "\n" .
+			sprintf( esc_html__( 'Group:   %s',      'wp-spider-cache' ), $group          ) . "\n" .
+			sprintf( esc_html__( 'Full:    %s',      'wp-spider-cache' ), $full           ) . "\n" .
+			sprintf( esc_html__( 'Code:    %s - %s', 'wp-spider-cache' ), $code, $message ) . "\n" .
+			sprintf( esc_html__( 'Value:   %s',      'wp-spider-cache' ), $value          ); ?>
 
-		<textarea class="sc-item" class="widefat" rows="10" cols="35"><?php echo $results; ?></textarea>
+		<textarea class="sc-item" class="widefat" rows="10" cols="35"><?php echo esc_textarea( $results ); ?></textarea>
 
 		<?php
 	}
@@ -739,7 +739,7 @@ class WP_Spider_Cache_UI {
 
 			<div class="wp-filter">
 				<div class="sc-toolbar-secondary">
-					<select class="sc-server-selector" data-nonce="<?php echo $get_instance_nonce ?>">
+					<select class="sc-server-selector" data-nonce="<?php echo esc_attr( $get_instance_nonce ); ?>">
 						<option value=""><?php esc_html_e( 'Select a Server', 'wp-spider-cache' ); ?></option><?php
 
 						// Loop through servers
@@ -1018,8 +1018,8 @@ class WP_Spider_Cache_UI {
 			return;
 		} ?>
 
-		<div id="message" class="notice <?php echo $status; ?>">
-			<p><?php echo $message; ?></p>
+		<div id="message" class="notice <?php echo esc_attr( $status ); ?>">
+			<p><?php echo $message; // May contain HTML ?></p>
 		</div>
 
 		<?php
