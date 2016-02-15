@@ -1259,6 +1259,9 @@ class WP_Object_Cache {
 		// Setup key
 		$keys[] = $key;
 
+		// Remove empties
+		$keys = array_filter( $keys );
+
 		// Assemble the cache key
 		$cache_key = implode( $keys, ':' );
 
