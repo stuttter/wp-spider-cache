@@ -833,7 +833,7 @@ function wp_cache_init() {
 function wp_object_cache() {
 
 	if ( ! isset( $GLOBALS['wp_object_cache'] ) ) {
-		wp_cache_init();
+		wp_object_cache_init();
 	}
 
 	return $GLOBALS['wp_object_cache'];

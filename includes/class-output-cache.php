@@ -281,7 +281,7 @@ class WP_Spider_Cache_Output {
 		}
 
 		// PHP5 and objects disappearing before output buffers?
-		wp_cache_init();
+		wp_object_cache_init();
 
 		// $wp_object_cache was clobbered in wp-settings.php so repeat this
 		$this->configure_groups();
