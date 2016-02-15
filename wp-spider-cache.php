@@ -524,7 +524,7 @@ class WP_Spider_Cache_UI {
 
 			// Multisite means first part is numeric
 			if ( is_numeric( $parts[ 0 ] ) ) {
-				$blog_id = $parts[ 0 ];
+				$blog_id = (int) $parts[ 0 ];
 				$group   = $parts[ 1 ];
 				$global  = false;
 
