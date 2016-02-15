@@ -39,7 +39,7 @@ class WP_Spider_Cache_UI {
 	 *
 	 * @var string
 	 */
-	private $version = '201602150001';
+	private $version = '201602150002';
 
 	/**
 	 * Nonce ID for getting the Memcached instance
