@@ -113,7 +113,7 @@ class WP_Spider_Cache_Object {
 		// This approach is borrowed from Sivel and Boren. Use the salt for easy
 		// cache invalidation and for multiple single WordPress installations on
 		// the same server.
-		if ( defined( 'WP_CACHE_KEY_SALT' ) && ! empty( WP_CACHE_KEY_SALT ) ) {
+		if ( defined( 'WP_CACHE_KEY_SALT' ) && WP_CACHE_KEY_SALT ) {
 			$this->cache_key_salt = rtrim( WP_CACHE_KEY_SALT, ':' );
 		}
 
