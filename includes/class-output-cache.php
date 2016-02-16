@@ -563,12 +563,7 @@ HTML;
 				wp_cache_add( $this->req_key, 0, $this->group );
 
 				$this->requests = wp_cache_incr( $this->req_key, 1, $this->group );
-
-				if ( $this->requests >= $this->times ) {
-					$this->do = true;
-				} else {
-					$this->do = false;
-				}
+				$this->do       = (bool) ( $this->requests >= $this->times );
 			}
 		}
 
