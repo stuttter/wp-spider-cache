@@ -605,17 +605,11 @@ HTML;
 							307 => 'Temporary Redirect',
 						);
 
-						$protocol = $_SERVER["SERVER_PROTOCOL"];
+						$protocol = wp_get_server_protocol();
 
-						if ( 'HTTP/1.1' !== $protocol && 'HTTP/1.0' !== $protocol ) {
-							$protocol = 'HTTP/1.0';
-						}
-
-						if ( isset( $texts[ $status ] ) ) {
-							header( "{$protocol} {$status} " . $texts[ $status ] );
-						} else {
-							header( "{$protocol} 302 Found");
-						}
+						isset( $texts[ $status ] )
+							? header( "{$protocol} {$status} {$texts[ $status ]}" )
+							: header( "{$protocol} 302 Found" );
 					}
 
 					header( "Location: {$location}" );
