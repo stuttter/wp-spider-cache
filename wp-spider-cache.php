@@ -160,8 +160,11 @@ class WP_Spider_Cache_UI {
 			return;
 		}
 
+		// Sanitize cache group to clear
+		$group = $this->sanitize_key( $_GET['cache_group'] );
+
 		// Clear the cache group
-		$cleared = $this->clear_group( $_GET['cache_group'] );
+		$cleared = $this->clear_group( $group );
 
 		// Bail if not redirecting
 		if ( false === $redirect ) {
@@ -171,7 +174,7 @@ class WP_Spider_Cache_UI {
 		// Assemble the URL
 		$url = add_query_arg( array(
 			'keys_cleared'  => $cleared,
-			'cache_cleared' => $_GET['cache_group']
+			'cache_cleared' => $group
 		), menu_page_url( 'wp-spider-cache', false ) );
 
 		// Redirect
@@ -549,8 +552,8 @@ class WP_Spider_Cache_UI {
 		// Setup the URL
 		$url = add_query_arg( array(
 			'action'  => 'sc-flush-group',
-			'blog_id' => $blog_id,
-			'group'   => $group,
+			'blog_id' => (int) $blog_id,
+			'group'   => $this->sanitize_key( $group ),
 			'nonce'   => $nonce
 		), admin_url( 'admin-ajax.php' ) );
 
@@ -686,9 +689,9 @@ class WP_Spider_Cache_UI {
 
 			// Get URL
 			$get_url = add_query_arg( array(
-				'blog_id' => $blog_id,
-				'group'   => $group,
-				'key'     => $key,
+				'blog_id' => (int) $blog_id,
+				'group'   => $this->sanitize_key( $group ),
+				'key'     => $this->sanitize_key( $key   ),
 				'action'  => 'sc-get-item',
 				'nonce'   => $get_item_nonce,
 			), $admin_url );
@@ -700,8 +703,8 @@ class WP_Spider_Cache_UI {
 
 			// Remove URL
 			$remove_url = add_query_arg( array(
-				'group'   => $include_blog_id,
-				'key'     => $key,
+				'group'   => $this->sanitize_key( $include_blog_id ),
+				'key'     => $this->sanitize_key( $key             ),
 				'action'  => 'sc-remove-item',
 				'nonce'   => $remove_item_nonce
 			), $admin_url ); ?>
