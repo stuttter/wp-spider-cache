@@ -553,27 +553,25 @@ HTML;
 		$this->cache = wp_cache_get( $this->key, $this->group );
 
 		// Are we only caching frequently-requested pages?
-		if ( $this->seconds < 1 || $this->times < 2 ) {
+		if ( ( $this->seconds < 1 ) || ( $this->times < 2 ) ) {
 			$this->do = true;
-		} else {
 
-			// No spider_cache item found, or ready to sample traffic again at
-			// the end of the spider_cache life?
-			if ( ! is_array( $this->cache ) || ( $this->started >= $this->cache['time'] + $this->max_age - $this->seconds ) ) {
-				wp_cache_add( $this->req_key, 0, $this->group );
+		// No spider_cache item found, or ready to sample traffic again at
+		// the end of the spider_cache life?
+		} elseif ( ! is_array( $this->cache ) || ( $this->started >= ( $this->cache['time'] + $this->max_age - $this->seconds ) ) ) {
+			wp_cache_add( $this->req_key, 0, $this->group );
 
-				$this->requests = wp_cache_incr( $this->req_key, 1, $this->group );
-				$this->do       = (bool) ( $this->requests >= $this->times );
-			}
+			$this->requests = wp_cache_incr( $this->req_key, 1, $this->group );
+			$this->do       = (bool) ( $this->requests >= $this->times );
 		}
 
 		// If the document has been updated and we are the first to notice, regenerate it.
-		if ( $this->do !== false && isset( $this->cache['version'] ) && $this->cache['version'] < $this->url_version ) {
+		if ( ( true === $this->do ) && isset( $this->cache['version'] ) && ( $this->cache['version'] < $this->url_version ) ) {
 			$this->genlock = wp_cache_add( "{$this->url_key}_genlock", 1, $this->group, 10 );
 		}
 
 		// Did we find a spider_cached page that hasn't expired?
-		if ( isset( $this->cache['time'] ) && empty( $this->genlock ) && ( $this->started < $this->cache['time'] + $this->cache['max_age'] ) ) {
+		if ( isset( $this->cache['time'] ) && ( false === $this->genlock ) && ( $this->started < $this->cache['time'] + $this->cache['max_age'] ) ) {
 
 			// Issue redirect if cached and enabled
 			if ( $this->cache['redirect_status'] && $this->cache['redirect_location'] && $this->cache_redirects ) {
@@ -661,7 +659,7 @@ HTML;
 		}
 
 		// Didn't meet the minimum condition?
-		if ( empty( $this->do ) && empty( $this->genlock ) ) {
+		if ( ( false === $this->do ) && ( false === $this->genlock ) ) {
 			return;
 		}
 
