@@ -179,7 +179,7 @@ class WP_Spider_Cache_Output {
 	 *
 	 * @return string
 	 */
-	protected function status_header( $status_header, $status_code = 200 ) {
+	public function status_header( $status_header, $status_code = 200 ) {
 		$this->status_header = $status_header;
 		$this->status_code   = (int) $status_code;
 
@@ -196,7 +196,7 @@ class WP_Spider_Cache_Output {
 	 *
 	 * @return type
 	 */
-	protected function redirect_status( $status, $location ) {
+	public function redirect_status( $status, $location ) {
 
 		// Cache this redirect
 		if ( true === $this->cache_redirects ) {
