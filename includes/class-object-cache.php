@@ -177,14 +177,14 @@ class WP_Spider_Cache_Object {
 		}
 
 		// Save to Memcached
-		if ( false !== $byKey ) {
-			$result = $this->mc->addByKey( $server_key, $derived_key, $value, $expiration );
-		} else {
-			$result = $this->mc->add( $derived_key, $value, $expiration );
-		}
+		$result = ( false !== $byKey )
+			? $this->mc->addByKey( $server_key, $derived_key, $value, $expiration )
+			: $this->mc->add( $derived_key, $value, $expiration );
+
+		$r_code = $this->getResultCode();
 
 		// Store in runtime cache if add was successful
-		if ( Memcached::RES_SUCCESS === $this->getResultCode() ) {
+		if ( Memcached::RES_SUCCESS === $r_code ) {
 			$this->add_to_internal_cache( $derived_key, $value );
 		}
 
@@ -287,14 +287,14 @@ class WP_Spider_Cache_Object {
 		}
 
 		// Append to Memcached value
-		if ( false !== $byKey ) {
-			$result = $this->mc->appendByKey( $server_key, $derived_key, $value );
-		} else {
-			$result = $this->mc->append( $derived_key, $value );
-		}
+		$result = ( false !== $byKey )
+			? $this->mc->appendByKey( $server_key, $derived_key, $value )
+			: $this->mc->append( $derived_key, $value );
+
+		$r_code = $this->getResultCode();
 
 		// Store in runtime cache if add was successful
-		if ( Memcached::RES_SUCCESS === $this->getResultCode() ) {
+		if ( Memcached::RES_SUCCESS === $r_code ) {
 			$combined = $this->combine_values( $this->cache[ $derived_key ], $value, 'app' );
 			$this->add_to_internal_cache( $derived_key, $combined );
 		}
@@ -356,14 +356,14 @@ class WP_Spider_Cache_Object {
 		}
 
 		// Save to Memcached
-		if ( false !== $byKey ) {
-			$result = $this->mc->casByKey( $cas_token, $server_key, $derived_key, $value, $expiration );
-		} else {
-			$result = $this->mc->cas( $cas_token, $derived_key, $value, $expiration );
-		}
+		$result = ( false !== $byKey )
+			? $this->mc->casByKey( $cas_token, $server_key, $derived_key, $value, $expiration )
+			: $this->mc->cas( $cas_token, $derived_key, $value, $expiration );
+
+		$r_code = $this->getResultCode();
 
 		// Store in runtime cache if cas was successful
-		if ( Memcached::RES_SUCCESS === $this->getResultCode() ) {
+		if ( Memcached::RES_SUCCESS === $r_code ) {
 			$this->add_to_internal_cache( $derived_key, $value );
 		}
 
@@ -428,8 +428,9 @@ class WP_Spider_Cache_Object {
 		}
 
 		$result = $this->mc->decrement( $derived_key, $offset );
+		$r_code = $this->getResultCode();
 
-		if ( Memcached::RES_SUCCESS === $this->getResultCode() ) {
+		if ( Memcached::RES_SUCCESS === $r_code ) {
 			$this->add_to_internal_cache( $derived_key, $result );
 		}
 
@@ -480,13 +481,13 @@ class WP_Spider_Cache_Object {
 			return true;
 		}
 
-		if ( false !== $byKey ) {
-			$result = $this->mc->deleteByKey( $server_key, $derived_key, $time );
-		} else {
-			$result = $this->mc->delete( $derived_key, $time );
-		}
+		$result = ( false !== $byKey )
+			? $this->mc->deleteByKey( $server_key, $derived_key, $time )
+			: $this->mc->delete( $derived_key, $time );
 
-		if ( Memcached::RES_SUCCESS === $this->getResultCode() ) {
+		$r_code = $this->getResultCode();
+
+		if ( Memcached::RES_SUCCESS === $r_code ) {
 			unset( $this->cache[ $derived_key ] );
 		}
 
@@ -545,9 +546,10 @@ class WP_Spider_Cache_Object {
 	 */
 	public function flush( $delay = 0 ) {
 		$result = $this->mc->flush( $delay );
+		$r_code = $this->getResultCode();
 
 		// Only reset the runtime cache if memcached was properly flushed
-		if ( Memcached::RES_SUCCESS === $this->getResultCode() ) {
+		if ( Memcached::RES_SUCCESS === $r_code ) {
 			$this->cache = array();
 		}
 
@@ -606,7 +608,9 @@ class WP_Spider_Cache_Object {
 			}
 		}
 
-		if ( Memcached::RES_SUCCESS === $this->getResultCode() ) {
+		$r_code = $this->getResultCode();
+
+		if ( Memcached::RES_SUCCESS === $r_code ) {
 			$this->add_to_internal_cache( $derived_key, $value );
 			$found = true;
 		}
@@ -725,20 +729,20 @@ class WP_Spider_Cache_Object {
 
 			// Get those keys not found in the runtime cache
 			if ( ! empty( $need_to_get ) ) {
-				if ( ! empty( $server_key ) ) {
-					$result = $this->mc->getMultiByKey( $server_key, array_keys( $need_to_get ) );
-				} else {
-					$result = $this->mc->getMulti( array_keys( $need_to_get ) );
+				$result = ! empty( $server_key )
+					? $this->mc->getMultiByKey( $server_key, array_keys( $need_to_get ) )
+					: $this->mc->getMulti( array_keys( $need_to_get ) );
+
+				$r_code = $this->getResultCode();
+
+				// Merge with values found in runtime cache
+				if ( Memcached::RES_SUCCESS === $r_code ) {
+					$values = array_merge( $values, $result );
 				}
 			}
 
-			// Merge with values found in runtime cache
-			if ( isset( $result ) && Memcached::RES_SUCCESS === $this->getResultCode() ) {
-				$values = array_merge( $values, $result );
-			}
-
 			// If order should be preserved, reorder now
-			if ( ! empty( $need_to_get ) && $flags === Memcached::GET_PRESERVE_ORDER ) {
+			if ( ! empty( $need_to_get ) && ( Memcached::GET_PRESERVE_ORDER === $flags ) ) {
 				$ordered_values = array();
 
 				foreach ( $derived_keys as $key ) {
@@ -748,6 +752,7 @@ class WP_Spider_Cache_Object {
 				}
 
 				$values = $ordered_values;
+
 				unset( $ordered_values );
 			}
 		}
@@ -901,8 +906,9 @@ class WP_Spider_Cache_Object {
 		}
 
 		$result = $this->mc->increment( $derived_key, $offset );
+		$r_code = $this->getResultCode();
 
-		if ( Memcached::RES_SUCCESS === $this->getResultCode() ) {
+		if ( Memcached::RES_SUCCESS === $r_code ) {
 			$this->add_to_internal_cache( $derived_key, $result );
 		}
 
@@ -970,8 +976,10 @@ class WP_Spider_Cache_Object {
 			$result = $this->mc->prepend( $derived_key, $value );
 		}
 
+		$r_code = $this->getResultCode();
+
 		// Store in runtime cache if add was successful
-		if ( Memcached::RES_SUCCESS === $this->getResultCode() ) {
+		if ( Memcached::RES_SUCCESS === $r_code ) {
 			$combined = $this->combine_values( $this->cache[ $derived_key ], $value, 'pre' );
 			$this->add_to_internal_cache( $derived_key, $combined );
 		}
@@ -1041,8 +1049,10 @@ class WP_Spider_Cache_Object {
 			$result = $this->mc->replace( $derived_key, $value, $expiration );
 		}
 
+		$r_code = $this->getResultCode();
+
 		// Store in runtime cache if add was successful
-		if ( Memcached::RES_SUCCESS === $this->getResultCode() ) {
+		if ( Memcached::RES_SUCCESS === $r_code ) {
 			$this->add_to_internal_cache( $derived_key, $value );
 		}
 
@@ -1100,8 +1110,10 @@ class WP_Spider_Cache_Object {
 			$result = $this->mc->set( $derived_key, $value, $expiration );
 		}
 
+		$r_code = $this->getResultCode();
+
 		// Store in runtime cache if add was successful
-		if ( Memcached::RES_SUCCESS === $this->getResultCode() ) {
+		if ( Memcached::RES_SUCCESS === $r_code ) {
 			$this->add_to_internal_cache( $derived_key, $value );
 		}
 
@@ -1166,14 +1178,14 @@ class WP_Spider_Cache_Object {
 		}
 
 		// Save to memcached
-		if ( false !== $byKey ) {
-			$result = $this->mc->setMultiByKey( $server_key, $derived_items, $expiration );
-		} else {
-			$result = $this->mc->setMulti( $derived_items, $expiration );
-		}
+		$result = ( false !== $byKey )
+			? $this->mc->setMultiByKey( $server_key, $derived_items, $expiration )
+			: $this->mc->setMulti( $derived_items, $expiration );
+
+		$r_code = $this->getResultCode();
 
 		// Store in runtime cache if add was successful
-		if ( Memcached::RES_SUCCESS === $this->getResultCode() ) {
+		if ( Memcached::RES_SUCCESS === $r_code ) {
 			$this->cache = array_merge( $this->cache, $derived_items );
 		}
 
