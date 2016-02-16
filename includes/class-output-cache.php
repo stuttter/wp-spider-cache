@@ -627,12 +627,9 @@ HTML;
 			} elseif ( $this->cache_control && isset( $_SERVER['HTTP_IF_MODIFIED_SINCE'] ) ) {
 
 				$client_time = strtotime( $_SERVER['HTTP_IF_MODIFIED_SINCE'] );
-
-				if ( isset( $this->cache['headers']['Last-Modified'][0] ) ) {
-					$cache_time = strtotime( $this->cache['headers']['Last-Modified'][0] );
-				} else {
-					$cache_time = $this->cache['time'];
-				}
+				$cache_time  = isset( $this->cache['headers']['Last-Modified'][0] )
+					? strtotime( $this->cache['headers']['Last-Modified'][0] )
+					: $this->cache['time'];
 
 				if ( $client_time >= $cache_time ) {
 					$three_oh_four = true;
