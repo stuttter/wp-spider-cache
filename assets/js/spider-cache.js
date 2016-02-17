@@ -90,6 +90,7 @@
 		} );
 
 		$refreshInstance.click( function () {
+			$showItem.hide();
 			$instanceSelector.trigger( 'change' );
 			return false;
 		} );
@@ -131,11 +132,17 @@
 				return false;
 			} )
 			.on( 'click', '.sc-view-item', function ( e ) {
+				var elem = $( e.currentTarget );
+
+				elem.parents( 'tr' ).addClass( 'row-updating' );
+
 				$.ajax( {
 					type    : 'post',
 					url     : e.currentTarget.href,
 					success : function ( data ) {
 						$showItem.html( data );
+						$showItem.show();
+						elem.parents( 'tr' ).removeClass( 'row-updating' );
 						window.location.hash = 'sc-wrapper';
 					}
 				} );
