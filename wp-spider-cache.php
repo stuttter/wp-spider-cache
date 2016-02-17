@@ -42,7 +42,16 @@ class WP_Spider_Cache_UI {
 	private $asset_version = '201602160001';
 
 	/**
-	 * Nonce ID for getting the Memcached instance
+	 * Allows UI to be cache engine agnostic
+	 *
+	 * @since 2.2.0
+	 *
+	 * @var string
+	 */
+	private $cache_engine = '';
+
+	/**
+	 * Nonce ID for getting the cache instance
 	 *
 	 * @since 2.0.0
 	 *
@@ -51,7 +60,7 @@ class WP_Spider_Cache_UI {
 	const INSTANCE_NONCE = 'sc_get_instance';
 
 	/**
-	 * Nonce ID for flushing a Memcache group
+	 * Nonce ID for flushing a cache group
 	 *
 	 * @since 2.0.0
 	 *
@@ -60,7 +69,7 @@ class WP_Spider_Cache_UI {
 	const FLUSH_NONCE = 'sc_flush_group';
 
 	/**
-	 * Nonce ID for removing an item from Memcache
+	 * Nonce ID for removing an item from cache
 	 *
 	 * @since 2.0.0
 	 *
@@ -69,7 +78,7 @@ class WP_Spider_Cache_UI {
 	const REMOVE_NONCE = 'sc_remove_item';
 
 	/**
-	 * Nonce ID for retrieving an item from Memcache
+	 * Nonce ID for retrieving an item from cache
 	 *
 	 * @since 2.0.0
 	 *
@@ -84,6 +93,8 @@ class WP_Spider_Cache_UI {
 	 */
 	public function __construct() {
 
+		$this->cache_engine = 'Memcache';
+
 		// Notices
 		add_action( 'spider_cache_notice', array( $this, 'notice' ) );
 
@@ -92,10 +103,10 @@ class WP_Spider_Cache_UI {
 		add_action( 'admin_enqueue_scripts', array( $this, 'admin_enqueue' ) );
 
 		// AJAX
-		add_action( 'wp_ajax_sc-get-item',     array( $this, 'ajax_get_mc_item'     ) );
-		add_action( 'wp_ajax_sc-get-instance', array( $this, 'ajax_get_mc_instance' ) );
-		add_action( 'wp_ajax_sc-flush-group',  array( $this, 'ajax_flush_mc_group'  ) );
-		add_action( 'wp_ajax_sc-remove-item',  array( $this, 'ajax_remove_mc_item'  ) );
+		add_action( 'wp_ajax_sc-get-item',     array( $this, 'ajax_get_item'     ) );
+		add_action( 'wp_ajax_sc-get-instance', array( $this, 'ajax_get_instance' ) );
+		add_action( 'wp_ajax_sc-flush-group',  array( $this, 'ajax_flush_group'  ) );
+		add_action( 'wp_ajax_sc-remove-item',  array( $this, 'ajax_remove_item'  ) );
 	}
 
 	/**
@@ -260,7 +271,7 @@ class WP_Spider_Cache_UI {
 	 *
 	 * @since 2.0.0
 	 */
-	public function ajax_get_mc_instance() {
+	public function ajax_get_instance() {
 		$this->check_nonce( self::INSTANCE_NONCE );
 
 		// Attempt to output the server contents
@@ -277,7 +288,7 @@ class WP_Spider_Cache_UI {
 	 *
 	 * @since 2.0.0
 	 */
-	public function ajax_flush_mc_group() {
+	public function ajax_flush_group() {
 		$this->check_nonce( self::FLUSH_NONCE );
 
 		// Loop through keys and attempt to delete them
@@ -298,7 +309,7 @@ class WP_Spider_Cache_UI {
 	 *
 	 * @since 2.0.0
 	 */
-	public function ajax_remove_mc_item() {
+	public function ajax_remove_item() {
 		$this->check_nonce( self::REMOVE_NONCE );
 
 		// Delete a key in a group
@@ -317,7 +328,7 @@ class WP_Spider_Cache_UI {
 	 *
 	 * @since 2.0.0
 	 */
-	public function ajax_get_mc_item() {
+	public function ajax_get_item() {
 		$this->check_nonce( self::GET_NONCE );
 
 		// Bail if invalid posted data
@@ -455,16 +466,17 @@ class WP_Spider_Cache_UI {
 	 */
 	public function retrieve_keys( $server, $port = 11211 ) {
 
-		// Connect to Memcache
-		$memcache = new Memcache();
-		$memcache->connect( $server, $port );
-
 		// No errors
 		$old_errors = error_reporting( 0 );
 
 		// Get slabs
-		$slabs = $memcache->getExtendedStats( 'slabs' );
 		$list  = array();
+
+		// Connect to cache server
+		wp_cache_connect( $server, $port );
+
+		// Get slabs from extended stats
+		$slabs = wp_cache_get_extended_stats( 'slabs' );
 
 		// Loop through servers to get slabs
 		foreach ( $slabs as $server => $slabs ) {
@@ -478,7 +490,7 @@ class WP_Spider_Cache_UI {
 				}
 
 				// Get the entire slab
-				$cache_dump = $memcache->getExtendedStats( 'cachedump', (int) $slab_id );
+				$cache_dump = wp_cache_get_extended_stats( 'cachedump', (int) $slab_id );
 
 				// Loop through slab to find keys
 				foreach ( $cache_dump as $slab_dump ) {
@@ -499,7 +511,7 @@ class WP_Spider_Cache_UI {
 		// Restore error reporting
 		error_reporting( $old_errors );
 
-		// Return the list of Memcache server slab keys
+		// Return the list of cache server slab keys
 		return $list;
 	}
 
@@ -513,7 +525,7 @@ class WP_Spider_Cache_UI {
 	 */
 	public function do_item( $key, $group ) {
 
-		// Get results directly from Memcached
+		// Get results directly from cache
 		$cache   = wp_cache_get( $key, $group );
 		$full    = wp_cache_get_key( $key, $group );
 		$code    = wp_cache_get_result_code();
@@ -578,7 +590,7 @@ class WP_Spider_Cache_UI {
 	 * The keymap is limited to global keys and keys to the current site. This
 	 * is because cache keys are built inside the WP_Object_Cache class, and
 	 * are occasionally prefixed with the current blog ID, meaning we cannot
-	 * reliably ask the memcache server for data without a way to force the key.
+	 * reliably ask the cache server for data without a way to force the key.
 	 *
 	 * Maybe in a future version of WP_Object_Cache, a method to retrieve a raw
 	 * value based on a full cache key will exist. Until then, no bueno.
@@ -844,7 +856,7 @@ class WP_Spider_Cache_UI {
 	}
 
 	/**
-	 * Output the Memcache server contents in a table
+	 * Output the cache server contents in a table
 	 *
 	 * @since 2.0.0
 	 *
@@ -1020,9 +1032,9 @@ class WP_Spider_Cache_UI {
 			}
 		}
 
-		// No Memcached
-		if ( ! class_exists( 'Memcached' ) ) {
-			$message = esc_html__( 'Please install the Memcached extension.', 'wp-spider-cache' );
+		// No cache engine
+		if ( ! class_exists( $this->cache_engine ) ) {
+			$message = sprintf( esc_html__( 'Please install the %s extension.', 'wp-spider-cache' ), $this->cache_engine );
 		}
 
 		// No object cache

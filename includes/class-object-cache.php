@@ -10,7 +10,7 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Persistent WordPress Object Cache, powered by Memcached
+ * Persistent WordPress Object Cache (in this case) powered by Memcached
  *
  * WordPress's Object Cache is used to save on trips to the database. It stores
  * all of the cache data to memory and makes the cache contents available by
@@ -22,21 +22,28 @@ defined( 'ABSPATH' ) || exit;
 class WP_Spider_Cache_Object {
 
 	/**
-	 * Holds the Memcached object.
+	 * Holds the cache engine.
+	 *
+	 * @var Memcache
+	 */
+	public $engine;
+
+	/**
+	 * Holds the cache daemon.
 	 *
 	 * @var Memcached
 	 */
-	public $mc;
+	public $daemon;
 
 	/**
-	 * Hold the Memcached server details.
+	 * Hold the server details.
 	 *
 	 * @var array
 	 */
 	public $servers;
 
 	/**
-	 * Holds the non-Memcached objects.
+	 * Holds the non-cached objects.
 	 *
 	 * @var array
 	 */
@@ -50,7 +57,7 @@ class WP_Spider_Cache_Object {
 	public $global_groups = array( 'users', 'userlogins', 'usermeta', 'user_meta', 'useremail', 'userslugs', 'site-transient', 'site-options', 'site-lookup', 'blog-lookup', 'blog-details', 'rss', 'global-posts', 'blog-id-cache', 'plugins', 'themes', 'networks' );
 
 	/**
-	 * List of groups not saved to Memcached.
+	 * List of groups not saved to cache.
 	 *
 	 * @var array
 	 */
@@ -78,9 +85,9 @@ class WP_Spider_Cache_Object {
 	public $cache_key_salt = '';
 
 	/**
-	 * Instantiate the Memcached class.
+	 * Instantiate the class.
 	 *
-	 * Instantiates the Memcached class and returns adds the servers specified
+	 * Instantiates the class and returns adds the servers specified
 	 * in the $memcached_servers global array.
 	 *
 	 * @link    http://www.php.net/manual/en/memcached.construct.php
@@ -88,48 +95,100 @@ class WP_Spider_Cache_Object {
 	 * @param   null    $persistent_id      To create an instance that persists between requests, use persistent_id to specify a unique ID for the instance.
 	 */
 	public function __construct( $persistent_id = NULL ) {
-		global $memcached_servers, $blog_id, $table_prefix;
 
-		// Setup cacheable values for handling expiration times
+		// Set values for handling expiration times
 		$this->thirty_days = DAY_IN_SECONDS * 30;
 		$this->now         = time();
 
-		// Setup Memcached object
+		// Set objects and properties
+		$this->set_engine( $persistent_id );
+		$this->set_daemon( $persistent_id );
+		$this->set_servers();
+		$this->set_salt();
+		$this->set_prefixes();
+	}
+
+	/**
+	 * Set the daemon
+	 *
+	 * @since 2.2.0
+	 *
+	 * @param int $persistent_id
+	 */
+	private function set_daemon( $persistent_id = 0 ) {
 		if ( class_exists( 'Memcached' ) ) {
 			if ( is_null( $persistent_id ) || ! is_string( $persistent_id ) ) {
-				$this->mc = new Memcached();
+				$this->daemon = new Memcached();
 			} else {
-				$this->mc = new Memcached( $persistent_id );
+				$this->daemon = new Memcached( $persistent_id );
 			}
 		}
+	}
 
-		// Setup Memcached servers
+	/**
+	 * Set the daemon
+	 *
+	 * @since 2.2.0
+	 *
+	 * @param  int    $persistent_id
+	 */
+	private function set_engine( $persistent_id = 0 ) {
+		if ( class_exists( 'Memcache' ) ) {
+			$this->engine = new Memcache();
+		}
+	}
+
+	/**
+	 * Add servers
+	 *
+	 * @since 2.2.0
+	 *
+	 * @global array $memcached_servers
+	 */
+	private function set_servers() {
+		global $memcached_servers;
+
+		// Setup servers
 		$this->servers = isset( $memcached_servers )
 			? $memcached_servers
 			: array( array( '127.0.0.1', 11211, 20 ) );
 
 		$this->addServers( $this->servers );
+	}
 
-		// This approach is borrowed from Sivel and Boren. Use the salt for easy
-		// cache invalidation and for multiple single WordPress installations on
-		// the same server.
+	/**
+	 * This approach is borrowed from Sivel and Boren. Use the salt for easy
+	 * cache invalidation and for multiple single WordPress installations on
+	 * the same server.
+	 *
+	 * @since 2.2.0
+	 */
+	private function set_salt() {
 		if ( defined( 'WP_CACHE_KEY_SALT' ) && WP_CACHE_KEY_SALT ) {
 			$this->cache_key_salt = rtrim( WP_CACHE_KEY_SALT, ':' );
 		}
+	}
 
-		// Assign global and blog prefixes for use with keys
-		if ( function_exists( 'is_multisite' ) ) {
+	/**
+	 * Set global and site prefixes
+	 *
+	 * @since 2.2.0
+	 *
+	 * @global  int    $blog_id
+	 * @global  string $table_prefix
+	 */
+	private function set_prefixes() {
+		global $blog_id, $table_prefix;
 
-			// Global prefix
-			$this->global_prefix = is_multisite() || ( defined( 'CUSTOM_USER_TABLE' ) && defined( 'CUSTOM_USER_META_TABLE' ) )
-				? ''
-				: $table_prefix;
+		// Global prefix
+		$this->global_prefix = is_multisite() || ( defined( 'CUSTOM_USER_TABLE' ) && defined( 'CUSTOM_USER_META_TABLE' ) )
+			? ''
+			: $table_prefix;
 
-			// Blog prefix
-			$this->blog_prefix = is_multisite()
-				? $blog_id
-				: $table_prefix;
-		}
+		// Blog prefix
+		$this->blog_prefix = is_multisite()
+			? $blog_id
+			: $table_prefix;
 	}
 
 	/**
@@ -163,7 +222,7 @@ class WP_Spider_Cache_Object {
 		$derived_key = $this->buildKey( $key, $group );
 		$expiration  = $this->sanitize_expiration( $expiration );
 
-		// If group is a non-Memcached group, save to runtime cache, not Memcached
+		// If group is a non-cache group, save to runtime cache, not cache
 		if ( in_array( $group, $this->no_mc_groups ) ) {
 
 			// Add does not set the value if the key exists; mimic that here
@@ -176,10 +235,10 @@ class WP_Spider_Cache_Object {
 			return true;
 		}
 
-		// Save to Memcached
+		// Save to cache
 		$result = ( false !== $byKey )
-			? $this->mc->addByKey( $server_key, $derived_key, $value, $expiration )
-			: $this->mc->add( $derived_key, $value, $expiration );
+			? $this->daemon->addByKey( $server_key, $derived_key, $value, $expiration )
+			: $this->daemon->add( $derived_key, $value, $expiration );
 
 		$r_code = $this->getResultCode();
 
@@ -213,12 +272,12 @@ class WP_Spider_Cache_Object {
 	}
 
 	/**
-	 * Add a single server to the list of Memcached servers.
+	 * Add a single server to the list of cache servers.
 	 *
 	 * @link http://www.php.net/manual/en/memcached.addserver.php
 	 *
-	 * @param   string      $host           The hostname of the memcache server.
-	 * @param   int         $port           The port on which memcache is running.
+	 * @param   string      $host           The hostname of the server.
+	 * @param   int         $port           The port on which is running.
 	 * @param   int         $weight         The weight of the server relative to the total weight of all the servers in the pool.
 	 * @return  bool                        Returns TRUE on success or FALSE on failure.
 	 */
@@ -227,7 +286,7 @@ class WP_Spider_Cache_Object {
 		$port   = is_numeric( $port ) && $port > 0 ? $port : 11211;
 		$weight = is_numeric( $weight ) && $weight > 0 ? $weight : 1;
 
-		return $this->mc->addServer( $host, $port, $weight );
+		return $this->daemon->addServer( $host, $port, $weight );
 	}
 
 	/**
@@ -242,11 +301,7 @@ class WP_Spider_Cache_Object {
 	 * @return  bool                        True on success; false on failure.
 	 */
 	public function addServers( $servers ) {
-		if ( ! is_object( $this->mc ) ) {
-			return false;
-		}
-
-		return $this->mc->addServers( $servers );
+		return $this->daemon->addServers( $servers );
 	}
 
 	/**
@@ -275,7 +330,7 @@ class WP_Spider_Cache_Object {
 
 		$derived_key = $this->buildKey( $key, $group );
 
-		// If group is a non-Memcached group, append to runtime cache value, not Memcached
+		// If group is a non-cache group, append to runtime cache value, not cache
 		if ( in_array( $group, $this->no_mc_groups ) ) {
 			if ( ! isset( $this->cache[ $derived_key ] ) ) {
 				return false;
@@ -286,10 +341,10 @@ class WP_Spider_Cache_Object {
 			return true;
 		}
 
-		// Append to Memcached value
+		// Append to cache value
 		$result = ( false !== $byKey )
-			? $this->mc->appendByKey( $server_key, $derived_key, $value )
-			: $this->mc->append( $derived_key, $value );
+			? $this->daemon->appendByKey( $server_key, $derived_key, $value )
+			: $this->daemon->append( $derived_key, $value );
 
 		$r_code = $this->getResultCode();
 
@@ -346,7 +401,7 @@ class WP_Spider_Cache_Object {
 		$expiration  = $this->sanitize_expiration( $expiration );
 
 		/**
-		 * If group is a non-Memcached group, save to runtime cache, not Memcached. Note
+		 * If group is a non-cached group, save to runtime cache, not cache. Note
 		 * that since check and set cannot be emulated in the run time cache, this value
 		 * operation is treated as a normal "add" for no_mc_groups.
 		 */
@@ -355,10 +410,10 @@ class WP_Spider_Cache_Object {
 			return true;
 		}
 
-		// Save to Memcached
+		// Save to cache
 		$result = ( false !== $byKey )
-			? $this->mc->casByKey( $cas_token, $server_key, $derived_key, $value, $expiration )
-			: $this->mc->cas( $cas_token, $derived_key, $value, $expiration );
+			? $this->daemon->casByKey( $cas_token, $server_key, $derived_key, $value, $expiration )
+			: $this->daemon->cas( $cas_token, $derived_key, $value, $expiration );
 
 		$r_code = $this->getResultCode();
 
@@ -388,6 +443,30 @@ class WP_Spider_Cache_Object {
 	 */
 	public function casByKey( $cas_token, $server_key, $key, $value, $group = 'default', $expiration = 0 ) {
 		return $this->cas( $cas_token, $key, $value, $group, $expiration, $server_key, true );
+	}
+
+	/**
+	 * Close a cache server connection
+	 *
+	 * @link    http://php.net/manual/en/memcache.close.php
+	 *
+	 * @return  bool  Returns TRUE on success or FALSE on failure.
+	 */
+	public function close() {
+		return true;
+	}
+
+	/**
+	 * Connect directly to a cache server
+	 *
+	 * @link    http://php.net/manual/en/memcache.connect.php
+	 *
+	 * @param   string   $server The host where the daemon is listening for connections
+	 * @param   int      $port   The port where the daemon is listening for connections
+	 * @return  bool             Returns TRUE on success or FALSE on failure.
+	 */
+	public function connect( $server = '127.0.0.1', $port = 11211 ) {
+		return $this->engine->connect( $server, $port );
 	}
 
 	/**
@@ -427,7 +506,7 @@ class WP_Spider_Cache_Object {
 			}
 		}
 
-		$result = $this->mc->decrement( $derived_key, $offset );
+		$result = $this->daemon->decrement( $derived_key, $offset );
 		$r_code = $this->getResultCode();
 
 		if ( Memcached::RES_SUCCESS === $r_code ) {
@@ -455,7 +534,7 @@ class WP_Spider_Cache_Object {
 	/**
 	 * Remove the item from the cache.
 	 *
-	 * Remove an item from memcached with identified by $key after $time seconds. The
+	 * Remove an item from cache with identified by $key after $time seconds. The
 	 * $time parameter allows an object to be queued for deletion without immediately
 	 * deleting. Between the time that it is queued and the time it's deleted, add,
 	 * replace, and get will fail, but set will succeed.
@@ -482,8 +561,8 @@ class WP_Spider_Cache_Object {
 		}
 
 		$result = ( false !== $byKey )
-			? $this->mc->deleteByKey( $server_key, $derived_key, $time )
-			: $this->mc->delete( $derived_key, $time );
+			? $this->daemon->deleteByKey( $server_key, $derived_key, $time )
+			: $this->daemon->delete( $derived_key, $time );
 
 		$r_code = $this->getResultCode();
 
@@ -497,7 +576,7 @@ class WP_Spider_Cache_Object {
 	/**
 	 * Remove the item from the cache by server key.
 	 *
-	 * Remove an item from memcached with identified by $key after $time seconds. The
+	 * Remove an item from cache with identified by $key after $time seconds. The
 	 * $time parameter allows an object to be queued for deletion without immediately
 	 * deleting. Between the time that it is queued and the time it's deleted, add,
 	 * replace, and get will fail, but set will succeed.
@@ -522,7 +601,7 @@ class WP_Spider_Cache_Object {
 	 * @return array|bool   Returns the next result or FALSE on failure.
 	 */
 	public function fetch() {
-		return $this->mc->fetch();
+		return $this->daemon->fetch();
 	}
 
 	/**
@@ -533,7 +612,7 @@ class WP_Spider_Cache_Object {
 	 * @return  array|bool          Returns the results or FALSE on failure.
 	 */
 	public function fetchAll() {
-		return $this->mc->fetchAll();
+		return $this->daemon->fetchAll();
 	}
 
 	/**
@@ -545,10 +624,10 @@ class WP_Spider_Cache_Object {
 	 * @return  bool                Returns TRUE on success or FALSE on failure.
 	 */
 	public function flush( $delay = 0 ) {
-		$result = $this->mc->flush( $delay );
+		$result = $this->daemon->flush( $delay );
 		$r_code = $this->getResultCode();
 
-		// Only reset the runtime cache if memcached was properly flushed
+		// Only reset the runtime cache if properly flushed
 		if ( Memcached::RES_SUCCESS === $r_code ) {
 			$this->cache = array();
 		}
@@ -561,7 +640,7 @@ class WP_Spider_Cache_Object {
 	 *
 	 * Gets an object from cache based on $key and $group. In order to fully support the $cache_cb and $cas_token
 	 * parameters, the runtime cache is ignored by this function if either of those values are set. If either of
-	 * those values are set, the request is made directly to the memcached server for proper handling of the
+	 * those values are set, the request is made directly to the cache server for proper handling of the
 	 * callback and/or token. Note that the $cas_token variable cannot be directly passed to the function. The
 	 * variable need to be first defined with a non null value.
 	 *
@@ -589,9 +668,9 @@ class WP_Spider_Cache_Object {
 		// If either $cache_db, or $cas_token is set, must hit Memcached and bypass runtime cache
 		if ( func_num_args() > 6 && ! in_array( $group, $this->no_mc_groups ) ) {
 			if ( false !== $byKey ) {
-				$value = $this->mc->getByKey( $server_key, $derived_key, $cache_cb, $cas_token );
+				$value = $this->daemon->getByKey( $server_key, $derived_key, $cache_cb, $cas_token );
 			} else {
-				$value = $this->mc->get( $derived_key, $cache_cb, $cas_token );
+				$value = $this->daemon->get( $derived_key, $cache_cb, $cas_token );
 			}
 		} else {
 			if ( isset( $this->cache[ $derived_key ] ) ) {
@@ -601,9 +680,9 @@ class WP_Spider_Cache_Object {
 				return false;
 			} else {
 				if ( false !== $byKey ) {
-					$value = $this->mc->getByKey( $server_key, $derived_key );
+					$value = $this->daemon->getByKey( $server_key, $derived_key );
 				} else {
-					$value = $this->mc->get( $derived_key );
+					$value = $this->daemon->get( $derived_key );
 				}
 			}
 		}
@@ -623,7 +702,7 @@ class WP_Spider_Cache_Object {
 	 *
 	 * Gets an object from cache based on $key, $group and $server_key. In order to fully support the $cache_cb and $cas_token
 	 * parameters, the runtime cache is ignored by this function if either of those values are set. If either of
-	 * those values are set, the request is made directly to the memcached server for proper handling of the
+	 * those values are set, the request is made directly to the cache server for proper handling of the
 	 * callback and/or token. Note that the $cas_token variable cannot be directly passed to the function. The
 	 * variable need to be first defined with a non null value.
 	 *
@@ -643,7 +722,7 @@ class WP_Spider_Cache_Object {
 	 */
 	public function getByKey( $server_key, $key, $group = 'default', $force = false, &$found = null, $cache_cb = NULL, &$cas_token = NULL ) {
 		/**
-		 * Need to be careful how "get" is called. If you send $cache_cb, and $cas_token, it will hit memcached.
+		 * Need to be careful how "get" is called. If you send $cache_cb, and $cas_token, it will hit cache.
 		 * Only send those args if they were sent to this function.
 		 */
 		if ( func_num_args() > 5 ) {
@@ -666,7 +745,7 @@ class WP_Spider_Cache_Object {
 	 */
 	public function getDelayed( $keys, $groups = 'default', $with_cas = false, $value_cb = NULL ) {
 		$derived_keys = $this->buildKeys( $keys, $groups );
-		return $this->mc->getDelayed( $derived_keys, $with_cas, $value_cb );
+		return $this->daemon->getDelayed( $derived_keys, $with_cas, $value_cb );
 	}
 
 	/**
@@ -683,11 +762,25 @@ class WP_Spider_Cache_Object {
 	 */
 	public function getDelayedByKey( $server_key, $keys, $groups = 'default', $with_cas = false, $value_cb = NULL ) {
 		$derived_keys = $this->buildKeys( $keys, $groups );
-		return $this->mc->getDelayedByKey( $server_key, $derived_keys, $with_cas, $value_cb );
+		return $this->daemon->getDelayedByKey( $server_key, $derived_keys, $with_cas, $value_cb );
 	}
 
 	/**
-	 * Gets multiple values from memcached in one request.
+	 * Get extended server pool statistics.
+	 *
+	 * @link http://php.net/manual/en/memcache.getextendedstats.php
+	 *
+	 * @param   string          $type    The type of statistics to retrieve
+	 * @param   string          $slab_id The name of the slab to retrieve
+	 * @param   int             $limit
+	 * @return  array
+	 */
+	public function getExtendedStats( $type, $slab_id = 0, $limit = 100 ) {
+		return $this->engine->getExtendedStats( $type, $slab_id, $limit );
+	}
+
+	/**
+	 * Gets multiple values from cache daemon in one request.
 	 *
 	 * See the buildKeys method definition to understand the $keys/$groups parameters.
 	 *
@@ -710,9 +803,9 @@ class WP_Spider_Cache_Object {
 		 */
 		if ( func_num_args() > 3 && ! $this->contains_no_mc_group( $groups ) ) {
 			if ( ! empty( $server_key ) ) {
-				$values = $this->mc->getMultiByKey( $server_key, $derived_keys, $cas_tokens, $flags );
+				$values = $this->daemon->getMultiByKey( $server_key, $derived_keys, $cas_tokens, $flags );
 			} else {
-				$values = $this->mc->getMulti( $derived_keys, $cas_tokens, $flags );
+				$values = $this->daemon->getMulti( $derived_keys, $cas_tokens, $flags );
 			}
 		} else {
 			$values      = array();
@@ -730,8 +823,8 @@ class WP_Spider_Cache_Object {
 			// Get those keys not found in the runtime cache
 			if ( ! empty( $need_to_get ) ) {
 				$result = ! empty( $server_key )
-					? $this->mc->getMultiByKey( $server_key, array_keys( $need_to_get ) )
-					: $this->mc->getMulti( array_keys( $need_to_get ) );
+					? $this->daemon->getMultiByKey( $server_key, array_keys( $need_to_get ) )
+					: $this->daemon->getMulti( array_keys( $need_to_get ) );
 
 				$r_code = $this->getResultCode();
 
@@ -764,7 +857,7 @@ class WP_Spider_Cache_Object {
 	}
 
 	/**
-	 * Gets multiple values from memcached in one request by specified server key.
+	 * Gets multiple values from cache daemon in one request by specified server key.
 	 *
 	 * See the buildKeys method definition to understand the $keys/$groups parameters.
 	 *
@@ -779,7 +872,7 @@ class WP_Spider_Cache_Object {
 	 */
 	public function getMultiByKey( $server_key, $keys, $groups = 'default', &$cas_tokens = NULL, $flags = NULL ) {
 		/**
-		 * Need to be careful how "getMulti" is called. If you send $cache_cb, and $cas_token, it will hit memcached.
+		 * Need to be careful how "getMulti" is called. If you send $cache_cb, and $cas_token, it will hit cache.
 		 * Only send those args if they were sent to this function.
 		 */
 		if ( func_num_args() > 3 ) {
@@ -790,7 +883,7 @@ class WP_Spider_Cache_Object {
 	}
 
 	/**
-	 * Retrieve a Memcached option value.
+	 * Retrieve a daemon option value.
 	 *
 	 * @link http://www.php.net/manual/en/memcached.getoption.php
 	 *
@@ -798,7 +891,7 @@ class WP_Spider_Cache_Object {
 	 * @return  mixed                   Returns the value of the requested option, or FALSE on error.
 	 */
 	public function getOption( $option ) {
-		return $this->mc->getOption( $option );
+		return $this->daemon->getOption( $option );
 	}
 
 	/**
@@ -806,10 +899,10 @@ class WP_Spider_Cache_Object {
 	 *
 	 * @link http://www.php.net/manual/en/memcached.getresultcode.php
 	 *
-	 * @return  int     Result code of the last Memcached operation.
+	 * @return  int     Result code of the last cache operation.
 	 */
 	public function getResultCode() {
-		return $this->mc->getResultCode();
+		return $this->daemon->getResultCode();
 	}
 
 	/**
@@ -817,10 +910,10 @@ class WP_Spider_Cache_Object {
 	 *
 	 * @link    http://www.php.net/manual/en/memcached.getresultmessage.php
 	 *
-	 * @return  string      Message describing the result of the last Memcached operation.
+	 * @return  string      Message describing the result of the last cache operation.
 	 */
 	public function getResultMessage() {
-		return $this->mc->getResultMessage();
+		return $this->daemon->getResultMessage();
 	}
 
 	/**
@@ -832,7 +925,7 @@ class WP_Spider_Cache_Object {
 	 * @return  array                       Array with host, post, and weight on success, FALSE on failure.
 	 */
 	public function getServerByKey( $server_key ) {
-		return $this->mc->getServerByKey( $server_key );
+		return $this->daemon->getServerByKey( $server_key );
 	}
 
 	/**
@@ -843,7 +936,7 @@ class WP_Spider_Cache_Object {
 	 * @return  array       The list of all servers in the server pool.
 	 */
 	public function getServerList() {
-		return $this->mc->getServerList();
+		return $this->daemon->getServerList();
 	}
 
 	/**
@@ -854,18 +947,18 @@ class WP_Spider_Cache_Object {
 	 * @return  array       Array of server statistics, one entry per server.
 	 */
 	public function getStats() {
-		return $this->mc->getStats();
+		return $this->daemon->getStats();
 	}
 
 	/**
-	 * Get server pool memcached version information.
+	 * Get server pool cache version information.
 	 *
 	 * @link    http://www.php.net/manual/en/memcached.getversion.php
 	 *
 	 * @return  array       Array of server versions, one entry per server.
 	 */
 	public function getVersion() {
-		return $this->mc->getVersion();
+		return $this->daemon->getVersion();
 	}
 
 	/**
@@ -905,7 +998,7 @@ class WP_Spider_Cache_Object {
 			}
 		}
 
-		$result = $this->mc->increment( $derived_key, $offset );
+		$result = $this->daemon->increment( $derived_key, $offset );
 		$r_code = $this->getResultCode();
 
 		if ( Memcached::RES_SUCCESS === $r_code ) {
@@ -958,7 +1051,7 @@ class WP_Spider_Cache_Object {
 
 		$derived_key = $this->buildKey( $key, $group );
 
-		// If group is a non-Memcached group, prepend to runtime cache value, not Memcached
+		// If group is a non-cache group, prepend to runtime cache value, not cache
 		if ( in_array( $group, $this->no_mc_groups ) ) {
 			if ( ! isset( $this->cache[ $derived_key ] ) ) {
 				return false;
@@ -969,11 +1062,11 @@ class WP_Spider_Cache_Object {
 			return true;
 		}
 
-		// Append to Memcached value
+		// Append to cache value
 		if ( false !== $byKey ) {
-			$result = $this->mc->prependByKey( $server_key, $derived_key, $value );
+			$result = $this->daemon->prependByKey( $server_key, $derived_key, $value );
 		} else {
-			$result = $this->mc->prepend( $derived_key, $value );
+			$result = $this->daemon->prepend( $derived_key, $value );
 		}
 
 		$r_code = $this->getResultCode();
@@ -1030,7 +1123,7 @@ class WP_Spider_Cache_Object {
 		$derived_key = $this->buildKey( $key, $group );
 		$expiration  = $this->sanitize_expiration( $expiration );
 
-		// If group is a non-Memcached group, save to runtime cache, not Memcached
+		// If group is a non-cache group, save to runtime cache, not persistent cache
 		if ( in_array( $group, $this->no_mc_groups ) ) {
 
 			// Replace won't save unless the key already exists; mimic this behavior here
@@ -1042,11 +1135,11 @@ class WP_Spider_Cache_Object {
 			return true;
 		}
 
-		// Save to Memcached
+		// Save to cache
 		if ( false !== $byKey ) {
-			$result = $this->mc->replaceByKey( $server_key, $derived_key, $value, $expiration );
+			$result = $this->daemon->replaceByKey( $server_key, $derived_key, $value, $expiration );
 		} else {
-			$result = $this->mc->replace( $derived_key, $value, $expiration );
+			$result = $this->daemon->replace( $derived_key, $value, $expiration );
 		}
 
 		$r_code = $this->getResultCode();
@@ -1081,7 +1174,7 @@ class WP_Spider_Cache_Object {
 	/**
 	 * Sets a value in cache.
 	 *
-	 * The value is set whether or not this key already exists in memcached.
+	 * The value is set whether or not this key already exists in cache.
 	 *
 	 * @link http://www.php.net/manual/en/memcached.set.php
 	 *
@@ -1097,17 +1190,17 @@ class WP_Spider_Cache_Object {
 		$derived_key = $this->buildKey( $key, $group );
 		$expiration  = $this->sanitize_expiration( $expiration );
 
-		// If group is a non-Memcached group, save to runtime cache, not Memcached
+		// If group is a non-cache group, save to runtime cache, not cache
 		if ( in_array( $group, $this->no_mc_groups ) ) {
 			$this->add_to_internal_cache( $derived_key, $value );
 			return true;
 		}
 
-		// Save to Memcached
+		// Save to cache
 		if ( false !== $byKey ) {
-			$result = $this->mc->setByKey( $server_key, $derived_key, $value, $expiration );
+			$result = $this->daemon->setByKey( $server_key, $derived_key, $value, $expiration );
 		} else {
-			$result = $this->mc->set( $derived_key, $value, $expiration );
+			$result = $this->daemon->set( $derived_key, $value, $expiration );
 		}
 
 		$r_code = $this->getResultCode();
@@ -1123,7 +1216,7 @@ class WP_Spider_Cache_Object {
 	/**
 	 * Sets a value in cache on a specific server.
 	 *
-	 * The value is set whether or not this key already exists in memcached.
+	 * The value is set whether or not this key already exists in cache.
 	 *
 	 * @link    http://www.php.net/manual/en/memcached.setbykey.php
 	 *
@@ -1142,8 +1235,8 @@ class WP_Spider_Cache_Object {
 	 * Set multiple values to cache at once.
 	 *
 	 * By sending an array of $items to this function, all values are saved at once to
-	 * memcached, reducing the need for multiple requests to memcached. The $items array
-	 * keys and values are what are stored to memcached. The keys in the $items array
+	 * cache, reducing the need for multiple requests to cache. The $items array
+	 * keys and values are what are stored to cache. The keys in the $items array
 	 * are merged with the $groups array/string value via buildKeys to determine the
 	 * final key for the object.
 	 *
@@ -1164,23 +1257,23 @@ class WP_Spider_Cache_Object {
 		$derived_items = array_combine( $derived_keys, $items );
 		$group_offset  = empty( $this->cache_key_salt ) ? 1 : 2;
 
-		// Do not add to memcached if in no_mc_groups
+		// Do not add to cache if in no_mc_groups
 		foreach ( $derived_items as $derived_key => $value ) {
 
 			// Get the individual item's group
 			$key_pieces = explode( ':', $derived_key );
 
-			// If group is a non-Memcached group, save to runtime cache, not Memcached
+			// If group is a non-cache group, save to runtime cache, not cache
 			if ( in_array( $key_pieces[ $group_offset ], $this->no_mc_groups ) ) {
 				$this->add_to_internal_cache( $derived_key, $value );
 				unset( $derived_items[ $derived_key ] );
 			}
 		}
 
-		// Save to memcached
+		// Save to cache
 		$result = ( false !== $byKey )
-			? $this->mc->setMultiByKey( $server_key, $derived_items, $expiration )
-			: $this->mc->setMulti( $derived_items, $expiration );
+			? $this->daemon->setMultiByKey( $server_key, $derived_items, $expiration )
+			: $this->daemon->setMulti( $derived_items, $expiration );
 
 		$r_code = $this->getResultCode();
 
@@ -1196,8 +1289,8 @@ class WP_Spider_Cache_Object {
 	 * Set multiple values to cache at once on specified server.
 	 *
 	 * By sending an array of $items to this function, all values are saved at once to
-	 * memcached, reducing the need for multiple requests to memcached. The $items array
-	 * keys and values are what are stored to memcached. The keys in the $items array
+	 * cache, reducing the need for multiple requests to cache. The $items array
+	 * keys and values are what are stored to cache. The keys in the $items array
 	 * are merged with the $groups array/string value via buildKeys to determine the
 	 * final key for the object.
 	 *
@@ -1214,7 +1307,7 @@ class WP_Spider_Cache_Object {
 	}
 
 	/**
-	 * Set a Memcached option.
+	 * Set a cache engine option.
 	 *
 	 * @link    http://www.php.net/manual/en/memcached.setoption.php
 	 *
@@ -1223,13 +1316,13 @@ class WP_Spider_Cache_Object {
 	 * @return  bool                Returns TRUE on success or FALSE on failure.
 	 */
 	public function setOption( $option, $value ) {
-		return $this->mc->setOption( $option, $value );
+		return $this->daemon->setOption( $option, $value );
 	}
 
 	/**
 	 * Builds a key for the cached object using the blog_id, key, and group values.
 	 *
-	 * @author  Ryan Boren   This function is inspired by the original WP Memcached Object cache.
+	 * @author  Ryan Boren   This function is inspired by the original Memcached plugin.
 	 * @link    http://wordpress.org/plugins/memcached/
 	 *
 	 * @param   string      $key        The key under which to store the value.
@@ -1294,11 +1387,11 @@ class WP_Spider_Cache_Object {
 	 * values. If $keys is an array and $groups is a string, all final values will append $groups to $keys[n].
 	 * If both values are strings, they will be combined into a single string. Note that if more $groups are received
 	 * than $keys, the method will return an empty array. This method is primarily a helper method for methods
-	 * that call memcached with an array of keys.
+	 * that call cache with an array of keys.
 	 *
 	 * @param   string|array    $keys       Key(s) to merge with group(s).
 	 * @param   string|array    $groups     Group(s) to merge with key(s).
-	 * @return  array                       Array that combines keys and groups into a single set of memcached keys.
+	 * @return  array                       Array that combines keys and groups into a single set of cache keys.
 	 */
 	public function buildKeys( $keys, $groups = 'default' ) {
 		$derived_keys = array();
@@ -1356,7 +1449,7 @@ class WP_Spider_Cache_Object {
 	 * Concatenates two values and casts to type of the first value.
 	 *
 	 * This is used in append and prepend operations to match how these functions are handled
-	 * by memcached. In both cases, whichever value is the original value in the combined value
+	 * by cache. In both cases, whichever value is the original value in the combined value
 	 * will dictate the type of the combined value.
 	 *
 	 * @param   mixed       $original   Original value that dictates the combined type.
@@ -1421,7 +1514,7 @@ class WP_Spider_Cache_Object {
 	/**
 	 * Add global groups.
 	 *
-	 * @author  Ryan Boren   This function comes straight from the original WP Memcached Object cache
+	 * @author  Ryan Boren   This function comes straight from the original Memcached plugin
 	 * @link    http://wordpress.org/plugins/memcached/
 	 *
 	 * @param   array       $groups     Array of groups.
@@ -1439,7 +1532,7 @@ class WP_Spider_Cache_Object {
 	/**
 	 * Add non-persistent groups.
 	 *
-	 * @author  Ryan Boren   This function comes straight from the original WP Memcached Object cache
+	 * @author  Ryan Boren   This function comes straight from the original Memcached plugin
 	 * @link    http://wordpress.org/plugins/memcached/
 	 *
 	 * @param   array       $groups     Array of groups.
@@ -1455,7 +1548,7 @@ class WP_Spider_Cache_Object {
 	}
 
 	/**
-	 * Get a value specifically from the internal, run-time cache, not memcached.
+	 * Get a value specifically from the internal, run-time cache, not persistent cache.
 	 *
 	 * @param   int|string  $key        Key value.
 	 * @param   int|string  $group      Group that the value belongs to.
