@@ -30,7 +30,7 @@ class WP_Spider_Cache_UI {
 	 *
 	 * @var string
 	 */
-	private $url = '';
+	private $asset_url = '';
 
 	/**
 	 * The version used for assets
@@ -39,7 +39,7 @@ class WP_Spider_Cache_UI {
 	 *
 	 * @var string
 	 */
-	private $version = '201602150003';
+	private $asset_version = '201602160001';
 
 	/**
 	 * Nonce ID for getting the Memcached instance
@@ -48,7 +48,7 @@ class WP_Spider_Cache_UI {
 	 *
 	 * @var string
 	 */
-	public $get_instance_nonce = 'sc-get_instance';
+	const INSTANCE_NONCE = 'sc_get_instance';
 
 	/**
 	 * Nonce ID for flushing a Memcache group
@@ -57,7 +57,7 @@ class WP_Spider_Cache_UI {
 	 *
 	 * @var string
 	 */
-	public $flush_group_nonce = 'sc-flush_group';
+	const FLUSH_NONCE = 'sc_flush_group';
 
 	/**
 	 * Nonce ID for removing an item from Memcache
@@ -66,7 +66,7 @@ class WP_Spider_Cache_UI {
 	 *
 	 * @var string
 	 */
-	public $remove_item_nonce = 'sc-remove_item';
+	const REMOVE_NONCE = 'sc_remove_item';
 
 	/**
 	 * Nonce ID for retrieving an item from Memcache
@@ -75,7 +75,7 @@ class WP_Spider_Cache_UI {
 	 *
 	 * @var string
 	 */
-	public $get_item_nonce = 'sc-get_item';
+	const GET_NONCE = 'sc_get_item';
 
 	/**
 	 * The main constructor
@@ -83,9 +83,6 @@ class WP_Spider_Cache_UI {
 	 * @since 2.0.0
 	 */
 	public function __construct() {
-
-		// Setup the plugin URL, for enqueues
-		$this->url = plugin_dir_url( __FILE__ );
 
 		// Notices
 		add_action( 'spider_cache_notice', array( $this, 'notice' ) );
@@ -135,9 +132,12 @@ class WP_Spider_Cache_UI {
 			return;
 		}
 
+		// Setup the plugin URL, for enqueues
+		$this->asset_url = plugin_dir_url( __FILE__ );
+
 		// Enqueue
-		wp_enqueue_style( 'wp-spider-cache', $this->url . 'assets/css/spider-cache.css', array(),          $this->version );
-		wp_enqueue_script( 'wp-spider-cache', $this->url . 'assets/js/spider-cache.js', array( 'jquery' ), $this->version, true );
+		wp_enqueue_style( 'wp-spider-cache', $this->asset_url . 'assets/css/spider-cache.css', array(),          $this->asset_version );
+		wp_enqueue_script( 'wp-spider-cache', $this->asset_url . 'assets/js/spider-cache.js', array( 'jquery' ), $this->asset_version, true );
 
 		// Localize JS
 		wp_localize_script( 'wp-spider-cache', 'WP_Spider_Cache', array(
@@ -173,6 +173,7 @@ class WP_Spider_Cache_UI {
 
 		// Assemble the URL
 		$url = add_query_arg( array(
+			'type'          => 'group',
 			'keys_cleared'  => $cleared,
 			'cache_cleared' => $group
 		), menu_page_url( 'wp-spider-cache', false ) );
@@ -215,12 +216,14 @@ class WP_Spider_Cache_UI {
 			return;
 		}
 
+		$cleared = array();
+
 		// Delete user caches
-		wp_cache_delete( $_user->ID,            'users'      );
-		wp_cache_delete( $_user->ID,            'user_meta'  );
-		wp_cache_delete( $_user->user_login,    'userlogins' );
-		wp_cache_delete( $_user->user_nicename, 'userslugs'  );
-		wp_cache_delete( $_user->user_email,    'useremail'  );
+		$cleared[] = wp_cache_delete( $_user->ID,            'users'      );
+		$cleared[] = wp_cache_delete( $_user->ID,            'user_meta'  );
+		$cleared[] = wp_cache_delete( $_user->user_login,    'userlogins' );
+		$cleared[] = wp_cache_delete( $_user->user_nicename, 'userslugs'  );
+		$cleared[] = wp_cache_delete( $_user->user_email,    'useremail'  );
 
 		// Bail if not redirecting
 		if ( false === $redirect ) {
@@ -229,7 +232,8 @@ class WP_Spider_Cache_UI {
 
 		// Assemble the URL
 		$url = add_query_arg( array(
-			'keys_cleared'  => '2',
+			'type'          => 'user',
+			'keys_cleared'  => count( array_filter( $cleared ) ),
 			'cache_cleared' => $_user->ID
 		), menu_page_url( 'wp-spider-cache', false ) );
 
@@ -257,7 +261,7 @@ class WP_Spider_Cache_UI {
 	 * @since 2.0.0
 	 */
 	public function ajax_get_mc_instance() {
-		$this->check_nonce( $this->get_instance_nonce );
+		$this->check_nonce( self::INSTANCE_NONCE );
 
 		// Attempt to output the server contents
 		if ( ! empty( $_POST['name'] ) ) {
@@ -274,7 +278,7 @@ class WP_Spider_Cache_UI {
 	 * @since 2.0.0
 	 */
 	public function ajax_flush_mc_group() {
-		$this->check_nonce( $this->flush_group_nonce );
+		$this->check_nonce( self::FLUSH_NONCE );
 
 		// Loop through keys and attempt to delete them
 		if ( ! empty( $_POST['keys'] ) && ! empty( $_GET['group'] ) ) {
@@ -295,7 +299,7 @@ class WP_Spider_Cache_UI {
 	 * @since 2.0.0
 	 */
 	public function ajax_remove_mc_item() {
-		$this->check_nonce( $this->remove_item_nonce );
+		$this->check_nonce( self::REMOVE_NONCE );
 
 		// Delete a key in a group
 		if ( ! empty( $_GET['key'] ) && ! empty( $_GET['group'] ) ) {
@@ -314,7 +318,7 @@ class WP_Spider_Cache_UI {
 	 * @since 2.0.0
 	 */
 	public function ajax_get_mc_item() {
-		$this->check_nonce( $this->get_item_nonce );
+		$this->check_nonce( self::GET_NONCE );
 
 		// Bail if invalid posted data
 		if ( ! empty( $_GET['key'] ) && ! empty( $_GET['group'] ) ) {
@@ -677,9 +681,7 @@ class WP_Spider_Cache_UI {
 	private function get_cache_key_links( $blog_id = 0, $group = '', $keys = array() ) {
 
 		// Setup variables used in the loop
-		$remove_item_nonce = wp_create_nonce( $this->remove_item_nonce );
-		$get_item_nonce    = wp_create_nonce( $this->get_item_nonce    );
-		$admin_url         = admin_url( 'admin-ajax.php' );
+		$admin_url = admin_url( 'admin-ajax.php' );
 
 		// Start the output buffer
 		ob_start();
@@ -693,7 +695,7 @@ class WP_Spider_Cache_UI {
 				'group'   => $this->sanitize_key( $group ),
 				'key'     => $this->sanitize_key( $key   ),
 				'action'  => 'sc-get-item',
-				'nonce'   => $get_item_nonce,
+				'nonce'   => wp_create_nonce( self::GET_NONCE    ),
 			), $admin_url );
 
 			// Maybe include the blog ID in the group
@@ -706,7 +708,7 @@ class WP_Spider_Cache_UI {
 				'group'   => $this->sanitize_key( $include_blog_id ),
 				'key'     => $this->sanitize_key( $key             ),
 				'action'  => 'sc-remove-item',
-				'nonce'   => $remove_item_nonce
+				'nonce'   => wp_create_nonce( self::REMOVE_NONCE )
 			), $admin_url ); ?>
 
 			<div class="item" data-key="<?php echo esc_attr( $key ); ?>">
@@ -732,8 +734,7 @@ class WP_Spider_Cache_UI {
 	 * @since 2.0.0
 	 */
 	public function page() {
-		$servers            = $this->get_servers();
-		$get_instance_nonce = wp_create_nonce( $this->get_instance_nonce ); ?>
+		?>
 
 		<div class="wrap spider-cache" id="sc-wrapper">
 			<h2><?php esc_html_e( 'Spider Cache', 'wp-spider-cache' ); ?></h2>
@@ -742,11 +743,11 @@ class WP_Spider_Cache_UI {
 
 			<div class="wp-filter">
 				<div class="sc-toolbar-secondary">
-					<select class="sc-server-selector" data-nonce="<?php echo esc_attr( $get_instance_nonce ); ?>">
+					<select class="sc-server-selector" data-nonce="<?php echo wp_create_nonce( self::INSTANCE_NONCE ); ?>">
 						<option value=""><?php esc_html_e( 'Select a Server', 'wp-spider-cache' ); ?></option><?php
 
 						// Loop through servers
-						foreach ( $servers as $server ) :
+						foreach ( $this->get_servers() as $server ) :
 
 							?><option value="<?php echo esc_attr( $server['host'] ); ?>"><?php echo esc_html( $server['host'] ); ?></option><?php
 
@@ -814,7 +815,7 @@ class WP_Spider_Cache_UI {
 			</table>
 		</div>
 
-	<?php
+		<?php
 	}
 
 	/**
@@ -852,11 +853,11 @@ class WP_Spider_Cache_UI {
 	public function do_rows( $server = '' ) {
 
 		// Setup the nonce
-		$flush_group_nonce = wp_create_nonce( $this->flush_group_nonce );
+		$nonce = wp_create_nonce( self::FLUSH_NONCE );
 
 		// Get server key map & output groups in rows
 		foreach ( $this->get_keymaps( $server ) as $values ) {
-			$this->do_row( $values, $flush_group_nonce );
+			$this->do_row( $values, $nonce );
 		}
 	}
 
@@ -866,9 +867,9 @@ class WP_Spider_Cache_UI {
 	 * @since 2.0.0
 	 *
 	 * @param  array   $values
-	 * @param  string  $flush_group_nonce
+	 * @param  string  $nonce
 	 */
-	private function do_row( $values = array(), $flush_group_nonce = '' ) {
+	private function do_row( $values = array(), $nonce = '' ) {
 		?>
 
 		<tr>
@@ -881,7 +882,7 @@ class WP_Spider_Cache_UI {
 			</td>
 			<td>
 				<span class="row-title"><?php echo esc_html( $values['group'] ); ?></span>
-				<div class="row-actions"><span class="trash"><?php echo $this->get_flush_group_link( $values['blog_id'], $values['group'], $flush_group_nonce ); ?></span></div>
+				<div class="row-actions"><span class="trash"><?php echo $this->get_flush_group_link( $values['blog_id'], $values['group'], $nonce ); ?></span></div>
 			</td>
 			<td>
 				<?php echo $this->get_cache_key_links( $values['blog_id'], $values['group'], $values['keys'] ); ?>
@@ -995,15 +996,28 @@ class WP_Spider_Cache_UI {
 				? $_GET['cache_cleared']
 				: 'none returned';
 
+			// Type
+			$type = isset( $_GET['type'] )
+				? sanitize_key( $_GET['type'] )
+				: 'none';
+
 			// Success
 			$status = 'notice-success';
 
 			// Assemble the message
-			$message = sprintf(
-				esc_html__( 'Cleared %s keys from %s group(s).', 'wp-spider-cache' ),
-				'<strong>' . esc_html( $keys  ) . '</strong>',
-				'<strong>' . esc_html( $cache ) . '</strong>'
-			);
+			if ( 'group' === $type ) {
+				$message = sprintf(
+					_n( 'Cleared %s key from cache group: %s', 'Cleared %s keys from cache group: %s', $keys, 'wp-spider-cache' ),
+					'<strong>' . esc_html( $keys  ) . '</strong>',
+					'<strong>' . esc_html( $cache ) . '</strong>'
+				);
+			} elseif ( 'user' === $type ) {
+				$message = sprintf(
+					_n( 'Cleared %s key for user ID: %s', 'Cleared %s keys for user ID: %s', $keys, 'wp-spider-cache' ),
+					'<strong>' . esc_html( $keys  ) . '</strong>',
+					'<strong>' . esc_html( $cache ) . '</strong>'
+				);
+			}
 		}
 
 		// No Memcached
