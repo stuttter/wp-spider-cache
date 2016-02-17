@@ -14,11 +14,12 @@ WP Spider Cache is your friendly neighborhood caching solution for WordPress. It
 
 If you are familiar with Batcache and WP Super Cache, you'll be right at home here.
 
-It comes with:
-* Support for registering multiple Memcached servers
-* An administration UI for viewing cache data
-* Ability to flush specific keys & groups
-* Drop-ins for `object-cache.php` and `advanced-cache.php`
+It comes with:  
+
+*   Support for registering multiple Memcached servers
+*   An administration UI for viewing cache data
+*   Ability to flush specific keys & groups
+*   Drop-ins for `object-cache.php` and `advanced-cache.php`
 
 = Also checkout =
 
@@ -40,10 +41,10 @@ It comes with:
 
 This plugin is largely inspired by:
 
-* Memcached
-* Batcache
-* Super Cache
-* Johnny Cache
+*   Memcached
+*   Batcache
+*   Super Cache
+*   Johnny Cache
 
 == Screenshots ==
 
