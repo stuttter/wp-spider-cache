@@ -42,6 +42,15 @@ class WP_Spider_Cache_UI {
 	private $asset_version = '201602160001';
 
 	/**
+	 * The resulting page's hook_suffix.
+	 *
+	 * @since 2016-02-18
+	 *
+	 * @var string
+	 */
+	private $hook = '';
+
+	/**
 	 * Allows UI to be cache engine agnostic
 	 *
 	 * @since 2.2.0
