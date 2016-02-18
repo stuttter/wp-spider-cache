@@ -1497,7 +1497,7 @@ class WP_Spider_Cache_Object {
 	 */
 	public function contains_no_mc_group( $groups ) {
 		if ( is_scalar( $groups ) ) {
-			return in_array( $groups, $this->no_mc_groups );
+			return in_array( $groups, $this->no_mc_groups, false );
 		}
 
 		if ( ! is_array( $groups ) ) {
@@ -1505,7 +1505,7 @@ class WP_Spider_Cache_Object {
 		}
 
 		foreach ( $groups as $group ) {
-			if ( in_array( $group, $this->no_mc_groups ) ) {
+			if ( in_array( $group, $this->no_mc_groups, false ) ) {
 				return true;
 			}
 		}
