@@ -1413,7 +1413,8 @@ class WP_Spider_Cache_Object {
 
 		// If more keys are received than groups, merge $keys[n] and $group[n] until no more group are left; remaining groups are 'default'
 		} elseif ( count( $keys ) > count( $groups ) ) {
-			for ( $i = 0; $i < count( $keys ); $i++ ) {
+			$imax = count( $keys );
+			for ( $i = 0; $i < $imax; $i++ ) {
 				if ( isset( $groups[$i] ) ) {
 					$derived_keys[] = $this->buildKey( $keys[$i], $groups[$i] );
 				} elseif ( count( $groups ) === 1 ) {
