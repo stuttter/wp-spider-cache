@@ -223,7 +223,7 @@ class WP_Spider_Cache_Object {
 		$expiration  = $this->sanitize_expiration( $expiration );
 
 		// If group is a non-cache group, save to runtime cache, not cache
-		if ( in_array( $group, $this->no_mc_groups ) ) {
+		if ( in_array( $group, $this->no_mc_groups, false ) ) {
 
 			// Add does not set the value if the key exists; mimic that here
 			if ( isset( $this->cache[ $derived_key ] ) ) {
@@ -331,7 +331,7 @@ class WP_Spider_Cache_Object {
 		$derived_key = $this->buildKey( $key, $group );
 
 		// If group is a non-cache group, append to runtime cache value, not cache
-		if ( in_array( $group, $this->no_mc_groups ) ) {
+		if ( in_array( $group, $this->no_mc_groups, false ) ) {
 			if ( ! isset( $this->cache[ $derived_key ] ) ) {
 				return false;
 			}
@@ -405,7 +405,7 @@ class WP_Spider_Cache_Object {
 		 * that since check and set cannot be emulated in the run time cache, this value
 		 * operation is treated as a normal "add" for no_mc_groups.
 		 */
-		if ( in_array( $group, $this->no_mc_groups ) ) {
+		if ( in_array( $group, $this->no_mc_groups, false ) ) {
 			$this->add_to_internal_cache( $derived_key, $value );
 			return true;
 		}
@@ -483,7 +483,7 @@ class WP_Spider_Cache_Object {
 		$derived_key = $this->buildKey( $key, $group );
 
 		// Decrement values in no_mc_groups
-		if ( in_array( $group, $this->no_mc_groups ) ) {
+		if ( in_array( $group, $this->no_mc_groups, false ) ) {
 
 			// Only decrement if the key already exists and value is 0 or greater (mimics memcached behavior)
 			if ( isset( $this->cache[ $derived_key ] ) && $this->cache[ $derived_key ] >= 0 ) {
@@ -552,7 +552,7 @@ class WP_Spider_Cache_Object {
 		$derived_key = $this->buildKey( $key, $group );
 
 		// Remove from no_mc_groups array
-		if ( in_array( $group, $this->no_mc_groups ) ) {
+		if ( in_array( $group, $this->no_mc_groups, false ) ) {
 			if ( isset( $this->cache[ $derived_key ] ) ) {
 				unset( $this->cache[ $derived_key ] );
 			}
@@ -666,7 +666,7 @@ class WP_Spider_Cache_Object {
 		$found = false;
 
 		// If either $cache_db, or $cas_token is set, must hit Memcached and bypass runtime cache
-		if ( func_num_args() > 6 && ! in_array( $group, $this->no_mc_groups ) ) {
+		if ( func_num_args() > 6 && ! in_array( $group, $this->no_mc_groups, false ) ) {
 			if ( false !== $byKey ) {
 				$value = $this->daemon->getByKey( $server_key, $derived_key, $cache_cb, $cas_token );
 			} else {
@@ -676,7 +676,7 @@ class WP_Spider_Cache_Object {
 			if ( isset( $this->cache[ $derived_key ] ) ) {
 				$found = true;
 				return is_object( $this->cache[ $derived_key ] ) ? clone $this->cache[ $derived_key ] : $this->cache[ $derived_key ];
-			} elseif ( in_array( $group, $this->no_mc_groups ) ) {
+			} elseif ( in_array( $group, $this->no_mc_groups, false ) ) {
 				return false;
 			} else {
 				if ( false !== $byKey ) {
@@ -975,7 +975,7 @@ class WP_Spider_Cache_Object {
 		$derived_key = $this->buildKey( $key, $group );
 
 		// Increment values in no_mc_groups
-		if ( in_array( $group, $this->no_mc_groups ) ) {
+		if ( in_array( $group, $this->no_mc_groups, false ) ) {
 
 			// Only increment if the key already exists and the number is currently 0 or greater (mimics memcached behavior)
 			if ( isset( $this->cache[ $derived_key ] ) &&  $this->cache[ $derived_key ] >= 0 ) {
@@ -1052,7 +1052,7 @@ class WP_Spider_Cache_Object {
 		$derived_key = $this->buildKey( $key, $group );
 
 		// If group is a non-cache group, prepend to runtime cache value, not cache
-		if ( in_array( $group, $this->no_mc_groups ) ) {
+		if ( in_array( $group, $this->no_mc_groups, false ) ) {
 			if ( ! isset( $this->cache[ $derived_key ] ) ) {
 				return false;
 			}
@@ -1124,7 +1124,7 @@ class WP_Spider_Cache_Object {
 		$expiration  = $this->sanitize_expiration( $expiration );
 
 		// If group is a non-cache group, save to runtime cache, not persistent cache
-		if ( in_array( $group, $this->no_mc_groups ) ) {
+		if ( in_array( $group, $this->no_mc_groups, false ) ) {
 
 			// Replace won't save unless the key already exists; mimic this behavior here
 			if ( ! isset( $this->cache[ $derived_key ] ) ) {
@@ -1191,7 +1191,7 @@ class WP_Spider_Cache_Object {
 		$expiration  = $this->sanitize_expiration( $expiration );
 
 		// If group is a non-cache group, save to runtime cache, not cache
-		if ( in_array( $group, $this->no_mc_groups ) ) {
+		if ( in_array( $group, $this->no_mc_groups, false ) ) {
 			$this->add_to_internal_cache( $derived_key, $value );
 			return true;
 		}
@@ -1264,7 +1264,7 @@ class WP_Spider_Cache_Object {
 			$key_pieces = explode( ':', $derived_key );
 
 			// If group is a non-cache group, save to runtime cache, not cache
-			if ( in_array( $key_pieces[ $group_offset ], $this->no_mc_groups ) ) {
+			if ( in_array( $key_pieces[ $group_offset ], $this->no_mc_groups, false ) ) {
 				$this->add_to_internal_cache( $derived_key, $value );
 				unset( $derived_items[ $derived_key ] );
 			}
