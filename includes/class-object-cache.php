@@ -1576,7 +1576,7 @@ class WP_Spider_Cache_Object {
 		global $table_prefix;
 
 		$this->blog_prefix = is_multisite()
-			? intval( $blog_id )
+			? (int) $blog_id
 			: $table_prefix;
 	}
 }
