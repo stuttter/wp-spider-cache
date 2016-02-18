@@ -96,6 +96,23 @@ class WP_Spider_Cache_UI {
 	const GET_NONCE = 'sc_get_item';
 
 	/**
+	 * The class object for instance.
+	 *
+	 * @since 2016-02-18
+	 *
+	 * @var   string
+	 */
+	static protected $class_object;
+
+	public static function init() {
+
+		if ( null === self::$class_object ) {
+			self::$class_object = new self;
+		}
+		return self::$class_object;
+	}
+
+	/**
 	 * The main constructor
 	 *
 	 * @since 2.0.0
@@ -108,7 +125,7 @@ class WP_Spider_Cache_UI {
 		add_action( 'spider_cache_notice', array( $this, 'notice' ) );
 
 		// Admin area UI
-		add_action( 'admin_menu',            array( $this, 'admin_menu'    ) );
+		$this->add_menu();
 		add_action( 'admin_enqueue_scripts', array( $this, 'admin_enqueue' ) );
 
 		// AJAX
@@ -116,6 +133,20 @@ class WP_Spider_Cache_UI {
 		add_action( 'wp_ajax_sc-get-instance', array( $this, 'ajax_get_instance' ) );
 		add_action( 'wp_ajax_sc-flush-group',  array( $this, 'ajax_flush_group'  ) );
 		add_action( 'wp_ajax_sc-remove-item',  array( $this, 'ajax_remove_item'  ) );
+	}
+
+	/**
+	 * Check for network activation and init to add menu item.
+	 *
+	 * @since 2016-02-18
+	 */
+	public function add_menu() {
+
+		if ( is_multisite() && is_plugin_active_for_network( plugin_basename( __FILE__ ) ) ) {
+			add_action( 'network_admin_menu', array( $this, 'admin_menu' ) );
+		} else {
+			add_action( 'admin_menu',         array( $this, 'admin_menu' ) );
+		}
 	}
 
 	/**
@@ -1065,4 +1096,5 @@ class WP_Spider_Cache_UI {
 }
 
 // Go web. Fly. Up, up, and away web! Shazam! Go! Go! Go web go! Tally ho!
-new WP_Spider_Cache_UI();
+//new WP_Spider_Cache_UI();
+add_action( 'plugins_loaded', array( 'WP_Spider_Cache_UI', 'init' ) );
