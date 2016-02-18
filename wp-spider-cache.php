@@ -142,6 +142,12 @@ class WP_Spider_Cache_UI {
 	 */
 	public function add_menu() {
 
+		if ( ! is_admin() )
+			return;
+
+		if ( ! function_exists( 'is_plugin_active_for_network' ) )
+			require_once( ABSPATH . '/wp-admin/includes/plugin.php' );
+
 		if ( is_multisite() && is_plugin_active_for_network( plugin_basename( __FILE__ ) ) ) {
 			add_action( 'network_admin_menu', array( $this, 'admin_menu' ) );
 		} else {
