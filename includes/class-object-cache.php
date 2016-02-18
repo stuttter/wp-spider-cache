@@ -149,7 +149,7 @@ class WP_Spider_Cache_Object {
 		global $memcached_servers;
 
 		// Setup servers
-		$this->servers = isset( $memcached_servers )
+		$this->servers = ( null !== $memcached_servers )
 			? $memcached_servers
 			: array( array( '127.0.0.1', 11211, 20 ) );
 
