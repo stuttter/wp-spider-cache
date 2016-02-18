@@ -11,5 +11,5 @@
 defined( 'ABSPATH' ) || exit;
 
 // Pull in required files
-require_once WP_CONTENT_DIR . '/plugins/wp-spider-cache/includes/functions.php';
-require_once WP_CONTENT_DIR . '/plugins/wp-spider-cache/includes/class-object-cache.php';
+require_once WP_PLUGIN_DIR . '/wp-spider-cache/includes/functions.php';
+require_once WP_PLUGIN_DIR . '/wp-spider-cache/includes/class-object-cache.php';
