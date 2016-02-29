@@ -95,20 +95,20 @@ class WP_Spider_Cache_UI {
 	const GET_NONCE = 'sc_get_item';
 
 	/**
-	 * The class object for instance.
+	 * Initialize the protected singleton
 	 *
-	 * @since 2016-02-18
+	 * @since 2.2.0
 	 *
-	 * @var   string
+	 * @return WP_Spider_Cache_UI
 	 */
-	static protected $class_object;
-
 	public static function init() {
+		static $class_object = null;
 
-		if ( null === self::$class_object ) {
-			self::$class_object = new self;
+		if ( null === $class_object ) {
+			$class_object = new self;
 		}
-		return self::$class_object;
+
+		return $class_object;
 	}
 
 	/**
@@ -1101,5 +1101,4 @@ class WP_Spider_Cache_UI {
 }
 
 // Go web. Fly. Up, up, and away web! Shazam! Go! Go! Go web go! Tally ho!
-//new WP_Spider_Cache_UI();
 add_action( 'plugins_loaded', array( 'WP_Spider_Cache_UI', 'init' ) );
