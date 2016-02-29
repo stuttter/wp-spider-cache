@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Plugin Name: WP Spider Cache
  * Plugin URI:  https://wordpress.org/plugins/wp-spider-cache/
