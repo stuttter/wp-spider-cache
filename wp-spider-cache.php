@@ -59,6 +59,15 @@ class WP_Spider_Cache_UI {
 	private $cache_engine = '';
 
 	/**
+	 * Array of blog IDs to show
+	 *
+	 * @since 2.2.0
+	 *
+	 * @var array
+	 */
+	private $blog_ids = array( 0 );
+
+	/**
 	 * Nonce ID for getting the cache instance
 	 *
 	 * @since 2.0.0
@@ -124,7 +133,9 @@ class WP_Spider_Cache_UI {
 		add_action( 'spider_cache_notice', array( $this, 'notice' ) );
 
 		// Admin area UI
-		$this->add_menu();
+		add_action( 'admin_menu',            array( $this, 'admin_menu'    ) );
+		add_action( 'user_admin_menu',       array( $this, 'admin_menu'    ) );
+		add_action( 'network_admin_menu',    array( $this, 'admin_menu'    ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'admin_enqueue' ) );
 
 		// AJAX
@@ -132,26 +143,6 @@ class WP_Spider_Cache_UI {
 		add_action( 'wp_ajax_sc-get-instance', array( $this, 'ajax_get_instance' ) );
 		add_action( 'wp_ajax_sc-flush-group',  array( $this, 'ajax_flush_group'  ) );
 		add_action( 'wp_ajax_sc-remove-item',  array( $this, 'ajax_remove_item'  ) );
-	}
-
-	/**
-	 * Check for network activation and init to add menu item.
-	 *
-	 * @since 2016-02-18
-	 */
-	public function add_menu() {
-
-		if ( ! is_admin() )
-			return;
-
-		if ( ! function_exists( 'is_plugin_active_for_network' ) )
-			require_once( ABSPATH . '/wp-admin/includes/plugin.php' );
-
-		if ( is_multisite() && is_plugin_active_for_network( plugin_basename( __FILE__ ) ) ) {
-			add_action( 'network_admin_menu', array( $this, 'admin_menu' ) );
-		} else {
-			add_action( 'admin_menu',         array( $this, 'admin_menu' ) );
-		}
 	}
 
 	/**
@@ -299,6 +290,27 @@ class WP_Spider_Cache_UI {
 	}
 
 	/**
+	 * Check for network activation and init to add menu item.
+	 *
+	 * @since 2.2.0
+	 */
+	public function set_blog_ids() {
+
+		// Blog
+		if ( empty( $_POST['type'] ) || ( 'blog' === $_POST['type'] ) ) {
+			$this->blog_ids = array( (int) get_current_blog_id() );
+
+		// Network
+		} elseif ( 'network' === $_POST['type'] ) {
+			$this->blog_ids = array( 0 );
+
+		// User
+		} elseif ( 'user' === $_POST['type'] ) {
+			$this->blog_ids = array( 0 );
+		}
+	}
+
+	/**
 	 * Helper function to check nonce and avoid caching the request
 	 *
 	 * @since 2.0.0
@@ -322,6 +334,7 @@ class WP_Spider_Cache_UI {
 		// Attempt to output the server contents
 		if ( ! empty( $_POST['name'] ) ) {
 			$server = filter_var( $_POST['name'], FILTER_VALIDATE_IP );
+			$this->set_blog_ids();
 			$this->do_rows( $server );
 		}
 
@@ -647,9 +660,6 @@ class WP_Spider_Cache_UI {
 	 */
 	private function get_keymaps( $server = '' ) {
 
-		// Use current blog ID to limit keymap scope
-		$current_blog_id = get_current_blog_id();
-
 		// Set an empty keymap array
 		$keymaps = array();
 		$offset  = 0;
@@ -689,7 +699,7 @@ class WP_Spider_Cache_UI {
 			}
 
 			// Only show global keys and keys for this site
-			if ( ! empty( $blog_id ) && ( $blog_id !== $current_blog_id ) ) {
+			if ( ! in_array( $blog_id, $this->blog_ids, true ) ) {
 				continue;
 			}
 
@@ -786,6 +796,31 @@ class WP_Spider_Cache_UI {
 	}
 
 	/**
+	 * Get the type of admin request this is
+	 *
+	 * @since 2.2.0
+	 *
+	 * @return string
+	 */
+	private function get_admin_type() {
+
+		// Default
+		$type = 'blog';
+
+		// Network admin
+		if ( is_network_admin() ) {
+			$type = 'network';
+
+		// User admin
+		} elseif ( is_user_admin() ) {
+			$type = 'user';
+		}
+
+		// Return the type
+		return $type;
+	}
+
+	/**
 	 * Output the WordPress admin page
 	 *
 	 * @since 2.0.0
@@ -812,6 +847,7 @@ class WP_Spider_Cache_UI {
 
 					?></select>
 					<button class="button action sc-refresh-instance" disabled><?php esc_html_e( 'Refresh', 'wp-spider-cache' ); ?></button>
+					<input type="hidden" name="sc-admin-type" id="sc-admin-type" value="<?php echo esc_attr( $this->get_admin_type() ); ?>">
 				</div>
 				<div class="sc-toolbar-primary search-form">
 					<label for="sc-search-input" class="screen-reader-text"><?php esc_html_e( 'Search Cache', 'wp-spider-cache' ); ?></label>

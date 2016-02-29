@@ -8,6 +8,7 @@
 		$instanceSelector,
 		$noResults,
 		$refreshResults,
+		$adminType,
 		$showItem,
 		$searchResults;
 
@@ -46,7 +47,8 @@
 				data : {
 					action : 'sc-get-instance',
 					nonce  : $el.data( 'nonce' ),
-					name   : $val
+					name   : $val,
+					type   : $adminType.val()
 				},
 				cache   : false,
 				success : function ( data ) {
@@ -82,6 +84,7 @@
 		$instanceSelector = $( '.sc-server-selector' );
 		$noResults        = $( '.sc-no-results' );
 		$refreshResults   = $( '.sc-refresh-results' );
+		$adminType        = $( '#sc-admin-type' );
 		$showItem         = $( '#sc-show-item' );
 		$searchResults    = $( '#sc-search-input' );
 
