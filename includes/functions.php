@@ -53,7 +53,7 @@ function wp_cache_add_by_key( $server_key, $key, $value, $group = '', $expiratio
 }
 
 /**
- * Add a single server to the list of Memcached servers.
+ * Add a single server to the list of cache servers.
  *
  * @link http://www.php.net/manual/en/memcached.addserver.php
  *
@@ -822,7 +822,7 @@ function wp_cache_add_global_groups( $groups ) {
 }
 
 /**
- * Adds a group or set of groups to the list of non-Memcached groups.
+ * Adds a group or set of groups to the list of non-persistent groups.
  *
  * @since 2.0.0
  *
