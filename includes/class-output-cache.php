@@ -52,7 +52,7 @@ class WP_Spider_Cache_Output {
 	public $seconds = 120;
 
 	/**
-	 * Name of memcached group. You can simulate a cache flush by changing this.
+	 * Name of cache group. You can simulate a cache flush by changing this.
 	 *
 	 * @var string
 	 */
@@ -246,13 +246,13 @@ class WP_Spider_Cache_Output {
 	}
 
 	/**
-	 * Configure the memcached client
+	 * Configure the cache client
 	 *
 	 * @since 2.0.0
 	 */
 	protected function configure_groups() {
 
-		// Local memcached instance only
+		// Local cache instance only
 		if ( false === $this->remote ) {
 			if ( function_exists( 'wp_cache_add_no_remote_groups' ) ) {
 				wp_cache_add_no_remote_groups( array( $this->group ) );
