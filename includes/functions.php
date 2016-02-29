@@ -3,6 +3,13 @@
 /**
  * Spider Cache Functions
  *
+ * Almost all of these functions are based on known Memcached methods, though
+ * for other popular engines (Redis, etc...) you'd want to use the same function
+ * names with different internals.
+ *
+ * Some functions (like wp_object_cache()) were introduced to wrap around an
+ * otherwise ambiguous cache global, to make them engine-agnostic.
+ *
  * @package Plugins/Cache/Functions
  */
 
