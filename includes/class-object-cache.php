@@ -62,8 +62,10 @@ class WP_Spider_Cache_Object extends WP_Spider_Cache_Object_Base {
 		parent::__construct( $persistent_id );
 
 		// Set engine flags
-		$this->success_code   = Memcached::RES_SUCCESS;
-		$this->preserve_order = Memcached::GET_PRESERVE_ORDER;
+		if ( class_exists( 'Memcached' ) ) {
+			$this->success_code   = Memcached::RES_SUCCESS;
+			$this->preserve_order = Memcached::GET_PRESERVE_ORDER;
+		}
 	}
 }
 endif;

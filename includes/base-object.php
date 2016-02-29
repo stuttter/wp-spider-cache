@@ -218,7 +218,10 @@ class WP_Spider_Cache_Object_Base {
 			? $GLOBALS[ $this->servers_global ]
 			: array( array( '127.0.0.1', 11211, 20 ) ); // Memcached defaults
 
-		$this->addServers( $this->servers );
+		// Only add servers if daemon exists
+		if ( ! empty( $this->daemon ) ) {
+			$this->addServers( $this->servers );
+		}
 	}
 
 	/**
