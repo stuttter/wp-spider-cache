@@ -499,14 +499,9 @@ HTML;
 	 */
 	protected function start() {
 
-		// Bail if cookies indicate a cache-exempt visitor
-		if ( is_array( $_COOKIE ) && ! empty( $_COOKIE ) ) {
-			$cookie_keys = array_keys( $_COOKIE );
-			foreach ( $cookie_keys as $this->cookie ) {
-				if ( ! in_array( $this->cookie, $this->noskip_cookies ) && ( substr( $this->cookie, 0, 2 ) === 'wp' || substr( $this->cookie, 0, 9 ) === 'wordpress' || substr( $this->cookie, 0, 14 ) === 'comment_author' ) ) {
-					return;
-				}
-			}
+		// Bail if cookies are present
+		if ( $this->has_cookies() ) {
+			return;
 		}
 
 		// Disabled
@@ -671,6 +666,59 @@ HTML;
 
 		// Start the spidey-sense listening
 		ob_start( array( $this, 'ob' ) );
+	}
+
+	private function has_cookies() {
+
+		// Bail if cookies indicate a cache-exempt visitor
+		if ( empty( $_COOKIE ) || ! is_array( $_COOKIE ) ) {
+			return false;
+		}
+
+		// Get cookie keys
+		$cookie_keys = array_keys( $_COOKIE );
+
+		// Loop through keys
+		foreach ( $cookie_keys as $this->cookie ) {
+
+			// Skip cookie
+			if ( in_array( $this->cookie, $this->noskip_cookies ) ) {
+				continue;
+			}
+
+			// Auth cookie
+			if ( substr( $this->cookie, 0, 2 ) === 'wp' ) {
+				return true;
+			}
+
+			// Auth cookie
+			if ( substr( $this->cookie, 0, 9 ) === 'wordpress' ) {
+				return true;
+			}
+
+			// Comment cookie
+			if ( substr( $this->cookie, 0, 14 ) === 'comment_author' ) {
+				return true;
+			}
+
+			// Auth cookie
+			if ( defined( 'AUTH_COOKIE' ) && ( $this->cookie === AUTH_COOKIE ) ) {
+				return true;
+			}
+
+			// User cookie
+			if ( defined( 'USER_COOKIE' ) && ( $this->cookie === USER_COOKIE ) ) {
+				return true;
+			}
+
+			// Logged-in cookie
+			if ( defined( 'LOGGED_IN_COOKIE' ) && ( $this->cookie === LOGGED_IN_COOKIE ) ) {
+				return true;
+			}
+		}
+
+		// No cookies
+		return false;
 	}
 
 	/**
