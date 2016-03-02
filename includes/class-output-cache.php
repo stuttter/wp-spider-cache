@@ -668,6 +668,13 @@ HTML;
 		ob_start( array( $this, 'ob' ) );
 	}
 
+	/**
+	 * Return whether or not user related cookies have been detected
+	 *
+	 * @since 2.3.0
+	 *
+	 * @return boolean
+	 */
 	private function has_cookies() {
 
 		// Bail if cookies indicate a cache-exempt visitor
