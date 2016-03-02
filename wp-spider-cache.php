@@ -143,6 +143,9 @@ class WP_Spider_Cache_UI {
 		add_action( 'wp_ajax_sc-get-instance', array( $this, 'ajax_get_instance' ) );
 		add_action( 'wp_ajax_sc-flush-group',  array( $this, 'ajax_flush_group'  ) );
 		add_action( 'wp_ajax_sc-remove-item',  array( $this, 'ajax_remove_item'  ) );
+
+		// Posts
+		add_action( 'clean_post_cache', array( $this, 'clean_post' ) );
 	}
 
 	/**
@@ -1133,6 +1136,72 @@ class WP_Spider_Cache_UI {
 		</div>
 
 		<?php
+	}
+
+	/**
+	 * Clean a post's cached URLs
+	 *
+	 * @since 2.3.0
+	 *
+	 * @param int $post_id
+	 */
+	public static function clean_post( $post_id = 0 ) {
+
+		// Get home URL
+		$home = trailingslashit( get_option( 'home' ) );
+
+		// Clear cached URLs
+		self::clean_url( $home );
+		self::clean_url( $home . 'feed/' );
+		self::clean_url( get_permalink( $post_id ) );
+	}
+
+	/**
+	 * Clear a cached URL
+	 *
+	 * @since 2.3.0
+	 *
+	 * @param string $url
+	 *
+	 * @return boolean
+	 */
+	public static function clean_url( $url = '' ) {
+
+		// Bail if no URL
+		if ( empty( $url ) ) {
+			return false;
+		}
+
+		// Normalize the URL
+		if ( 0 === strpos( $url, 'https://' ) ) {
+			$url = str_replace( 'https://', 'http://', $url );
+		}
+
+		if ( 0 !== strpos( $url, 'http://' ) ) {
+			$url = 'http://' . $url;
+		}
+
+		$url_key = md5( $url );
+
+		// Get cache objects
+		$output_cache = wp_output_cache();
+		$object_cache = wp_object_cache();
+
+		wp_cache_add( "{$url_key}_version", 0, $output_cache->group );
+
+		$retval = wp_cache_incr( "{$url_key}_version", 1, $output_cache->group );
+
+		$output_cache_no_remote_group_key = array_search( $output_cache->group, (array) $object_cache->no_remote_groups );
+
+		// The *_version key needs to be replicated remotely, otherwise invalidation won't work.
+		// The race condition here should be acceptable.
+		if ( false !== $output_cache_no_remote_group_key ) {
+			unset( $object_cache->no_remote_groups[ $output_cache_no_remote_group_key ] );
+			$retval = wp_cache_set( "{$url_key}_version", $retval, $output_cache->group );
+			$object_cache->no_remote_groups[ $output_cache_no_remote_group_key ] = $output_cache->group;
+		}
+
+		return $retval;
 	}
 }
 
