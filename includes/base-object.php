@@ -143,7 +143,7 @@ class WP_Spider_Cache_Object_Base {
 		$this->now         = time();
 
 		// Set objects and properties
-		$this->set_engine( $persistent_id );
+		$this->set_engine();
 		$this->set_daemon( $persistent_id );
 		$this->set_servers();
 		$this->set_salt();
