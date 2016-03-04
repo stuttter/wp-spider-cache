@@ -1172,6 +1172,11 @@ class WP_Spider_Cache_UI {
 			return false;
 		}
 
+		// Bail if no persistent output cache
+		if ( ! function_exists( 'wp_output_cache' ) ) {
+			return false;
+		}
+
 		// Normalize the URL
 		if ( 0 === strpos( $url, 'https://' ) ) {
 			$url = str_replace( 'https://', 'http://', $url );
