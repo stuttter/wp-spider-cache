@@ -158,12 +158,10 @@ class WP_Spider_Cache_Object_Base {
 	 * @param int $persistent_id
 	 */
 	private function set_daemon( $persistent_id = 0 ) {
-		if ( class_exists( $this->daemon_class_name ) ) {
-			if ( is_null( $persistent_id ) || ! is_string( $persistent_id ) ) {
-				$this->daemon = new $this->daemon_class_name;
-			} else {
-				$this->daemon = new $this->daemon_class_name( $persistent_id );
-			}
+		if ( is_null( $persistent_id ) || ! is_string( $persistent_id ) ) {
+			$this->daemon = new $this->daemon_class_name;
+		} else {
+			$this->daemon = new $this->daemon_class_name( $persistent_id );
 		}
 	}
 
@@ -173,9 +171,7 @@ class WP_Spider_Cache_Object_Base {
 	 * @since 2.2.0
 	 */
 	private function set_engine() {
-		if ( class_exists( $this->engine_class_name ) ) {
-			$this->engine = new $this->engine_class_name();
-		}
+		$this->engine = new $this->engine_class_name();
 	}
 
 	/**
@@ -275,18 +271,11 @@ class WP_Spider_Cache_Object_Base {
 			return true;
 		}
 
-		// No result
-		$result = false;
-
 		// Save to cache
 		if ( false !== $byKey ) {
-			if ( is_callable( $this->daemon, 'addByKey' ) ) {
-				$result = $this->daemon->addByKey( $server_key, $derived_key, $value, $expiration );
-			}
+			$result = $this->daemon->addByKey( $server_key, $derived_key, $value, $expiration );
 		} else {
-			if ( is_callable( $this->daemon, 'add' ) ) {
-				$result = $this->daemon->add( $derived_key, $value, $expiration );
-			}
+			$result = $this->daemon->add( $derived_key, $value, $expiration );
 		}
 
 		// Store in runtime cache if add was successful
@@ -602,17 +591,10 @@ class WP_Spider_Cache_Object_Base {
 			return true;
 		}
 
-		// No result
-		$result = false;
-
 		if ( false !== $byKey ) {
-			if ( is_callable( $this->daemon, 'deleteByKey' ) ) {
-				$result = $this->daemon->deleteByKey( $server_key, $derived_key, $time );
-			}
+			$result = $this->daemon->deleteByKey( $server_key, $derived_key, $time );
 		} else {
-			if ( is_callable( $this->daemon, 'delete' ) ) {
-				$result = $this->daemon->delete( $derived_key, $time );
-			}
+			$result = $this->daemon->delete( $derived_key, $time );
 		}
 
 		if ( $this->success() ) {
@@ -937,9 +919,7 @@ class WP_Spider_Cache_Object_Base {
 	 * @return  mixed                   Returns the value of the requested option, or FALSE on error.
 	 */
 	public function getOption( $option ) {
-		return is_callable( $this->daemon, 'getOption' )
-			? $this->daemon->getOption( $option )
-			: false;
+		return $this->daemon->getOption( $option );
 	}
 
 	/**
@@ -950,9 +930,7 @@ class WP_Spider_Cache_Object_Base {
 	 * @return  int     Result code of the last cache operation.
 	 */
 	public function getResultCode() {
-		return is_callable( $this->daemon, 'getResultCode' )
-			? $this->daemon->getResultCode()
-			: false;
+		return $this->daemon->getResultCode();
 	}
 
 	/**
@@ -963,9 +941,7 @@ class WP_Spider_Cache_Object_Base {
 	 * @return  string      Message describing the result of the last cache operation.
 	 */
 	public function getResultMessage() {
-		return is_callable( $this->daemon, 'getResultMessage' )
-			? $this->daemon->getResultMessage()
-			: false;
+		return $this->daemon->getResultMessage();
 	}
 
 	/**
@@ -977,9 +953,7 @@ class WP_Spider_Cache_Object_Base {
 	 * @return  array                       Array with host, post, and weight on success, FALSE on failure.
 	 */
 	public function getServerByKey( $server_key ) {
-		return is_callable( $this->daemon, 'getServerByKey' )
-			? $this->daemon->getServerByKey( $server_key )
-			: false;
+		return $this->daemon->getServerByKey( $server_key );
 	}
 
 	/**
@@ -990,9 +964,7 @@ class WP_Spider_Cache_Object_Base {
 	 * @return  array       The list of all servers in the server pool.
 	 */
 	public function getServerList() {
-		return is_callable( $this->daemon, 'getServerList' )
-			? $this->daemon->getServerList()
-			: false;
+		return $this->daemon->getServerList();
 	}
 
 	/**
@@ -1003,9 +975,7 @@ class WP_Spider_Cache_Object_Base {
 	 * @return  array       Array of server statistics, one entry per server.
 	 */
 	public function getStats() {
-		return is_callable( $this->daemon, 'getStats' )
-			? $this->daemon->getStats()
-			: false;
+		return $this->daemon->getStats();
 	}
 
 	/**
@@ -1016,9 +986,7 @@ class WP_Spider_Cache_Object_Base {
 	 * @return  array       Array of server versions, one entry per server.
 	 */
 	public function getVersion() {
-		return is_callable( $this->daemon, 'getVersion' )
-			? $this->daemon->getVersion()
-			: false;
+		return $this->daemon->getVersion();
 	}
 
 	/**
@@ -1059,9 +1027,7 @@ class WP_Spider_Cache_Object_Base {
 		}
 
 		// Get result
-		$result = is_callable( $this->daemon, 'increment' )
-			? $this->daemon->increment( $derived_key, $offset )
-			: false;
+		$result = $this->daemon->increment( $derived_key, $offset );
 
 		if ( $this->success() ) {
 			$this->add_to_internal_cache( $derived_key, $result );
@@ -1208,18 +1174,11 @@ class WP_Spider_Cache_Object_Base {
 			return true;
 		}
 
-		// No result
-		$result = false;
-
 		// Save to cache
 		if ( false !== $byKey ) {
-			if ( is_callable( $this->daemon, 'replaceByKey' ) ) {
-				$result = $this->daemon->replaceByKey( $server_key, $derived_key, $value, $expiration );
-			}
+			$result = $this->daemon->replaceByKey( $server_key, $derived_key, $value, $expiration );
 		} else {
-			if ( is_callable( $this->daemon, 'replace' ) ) {
-				$result = $this->daemon->replace( $derived_key, $value, $expiration );
-			}
+			$result = $this->daemon->replace( $derived_key, $value, $expiration );
 		}
 
 		// Store in runtime cache if add was successful
@@ -1274,18 +1233,11 @@ class WP_Spider_Cache_Object_Base {
 			return true;
 		}
 
-		// No result
-		$result = false;
-
 		// Save to cache
 		if ( false !== $byKey ) {
-			if ( is_callable( $this->daemon, 'setByKey' ) ) {
-				$result = $this->daemon->setByKey( $server_key, $derived_key, $value, $expiration );
-			}
+			$result = $this->daemon->setByKey( $server_key, $derived_key, $value, $expiration );
 		} else {
-			if ( is_callable( $this->daemon, 'set' ) ) {
-				$result = $this->daemon->set( $derived_key, $value, $expiration );
-			}
+			$result = $this->daemon->set( $derived_key, $value, $expiration );
 		}
 
 		// Store in runtime cache if add was successful
