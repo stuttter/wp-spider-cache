@@ -22,8 +22,7 @@ class WP_Spider_Cache_Output {
 	public $started = 0;
 
 	/**
-	 * This is the base configuration. You can edit these variables or move them
-	 * into your wp-config.php file.
+	 * Maximum age of a cached page in seconds
 	 *
 	 * @var int
 	 */
@@ -158,6 +157,13 @@ class WP_Spider_Cache_Output {
 	 * @since 2.0.0
 	 */
 	public function __construct() {
+
+		// Maybe pull values from pre-existing output cache global
+		if ( ! empty( $GLOBALS['wp_output_cache'] ) && is_array( $GLOBALS['wp_output_cache'] ) ) {
+			foreach ( $GLOBALS['wp_output_cache'] as $key => $value ) {
+				$this->{$key} = $value;
+			}
+		}
 
 		// Set the started time
 		$this->started = time();
