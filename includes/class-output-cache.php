@@ -165,6 +165,11 @@ class WP_Spider_Cache_Output {
 			}
 		}
 
+		// Bail if cookies are present
+		if ( $this->has_cookies() ) {
+			return;
+		}
+
 		// Set the started time
 		$this->started = time();
 
@@ -504,11 +509,6 @@ HTML;
 	 * @return void
 	 */
 	protected function start() {
-
-		// Bail if cookies are present
-		if ( $this->has_cookies() ) {
-			return;
-		}
 
 		// Disabled
 		if ( $this->max_age < 1 ) {
