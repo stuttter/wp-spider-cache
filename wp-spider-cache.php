@@ -1192,6 +1192,11 @@ class WP_Spider_Cache_UI {
 		$output_cache = wp_output_cache();
 		$object_cache = wp_object_cache();
 
+		// Bail if either cache is missing
+		if ( empty( $output_cache ) || empty( $object_cache ) ) {
+			return;
+		}
+
 		wp_cache_add( "{$url_key}_version", 0, $output_cache->group );
 
 		$retval = wp_cache_incr( "{$url_key}_version", 1, $output_cache->group );
