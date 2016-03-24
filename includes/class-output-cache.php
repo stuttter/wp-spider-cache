@@ -138,6 +138,13 @@ class WP_Spider_Cache_Output {
 	public $noskip_cookies = array();
 
 	/**
+	 * Names of cookies - if they exist bypass caching.
+	 *
+	 * @var array
+	 */
+	public $skip_cookies = array();
+
+	/**
 	 * Used internally
 	 *
 	 * @var bool
@@ -525,8 +532,11 @@ HTML;
 			parse_str( $_SERVER['QUERY_STRING'], $this->query );
 		}
 
+		// Get the server protocol
+		$protocol = wp_get_server_protocol();
+
 		// Build different versions for HTTP/1.1 and HTTP/2.0
-		if ( isset( $_SERVER['SERVER_PROTOCOL'] ) ) {
+		if ( 'HTTP/1.0' !== $protocol ) {
 			$this->unique['server_protocol'] = $_SERVER['SERVER_PROTOCOL'];
 		}
 
@@ -541,8 +551,8 @@ HTML;
 		);
 
 		// Recreate the permalink from the URL
-		$protocol          = ( true === $this->keys['ssl'] ) ? 'https://' : 'http://';
-		$this->permalink   = $protocol . $this->keys['host'] . $this->keys['path'] . ( isset( $this->keys['query']['p'] ) ? "?p=" . $this->keys['query']['p'] : '' );
+		$scheme            = ( true === $this->keys['ssl'] ) ? 'https://' : 'http://';
+		$this->permalink   = $scheme . $this->keys['host'] . $this->keys['path'] . ( isset( $this->keys['query']['p'] ) ? "?p=" . $this->keys['query']['p'] : '' );
 		$this->url_key     = md5( $this->permalink );
 		$this->url_version = (int) wp_cache_get( "{$this->url_key}_version", $this->group );
 
@@ -598,8 +608,6 @@ HTML;
 							306 => 'Reserved',
 							307 => 'Temporary Redirect',
 						);
-
-						$protocol = wp_get_server_protocol();
 
 						isset( $texts[ $status ] )
 							? header( "{$protocol} {$status} {$texts[ $status ]}" )
@@ -675,6 +683,29 @@ HTML;
 	}
 
 	/**
+	 * Look for predefined constants, and add them to the skip_cookies array
+	 *
+	 * @since 2.3.0
+	 */
+	private function set_skip_cookies() {
+
+		// Auth cookie
+		if ( defined( 'AUTH_COOKIE' ) && AUTH_COOKIE && ! in_array( AUTH_COOKIE, $this->skip_cookies, true ) ) {
+			$this->skip_cookies[] = AUTH_COOKIE;
+		}
+
+		// User cookie
+		if ( defined( 'USER_COOKIE' ) && USER_COOKIE && ! in_array( USER_COOKIE, $this->skip_cookies, true ) ) {
+			$this->skip_cookies[] = USER_COOKIE;
+		}
+
+		// Logged-in cookie
+		if ( defined( 'LOGGED_IN_COOKIE' ) && LOGGED_IN_COOKIE && ! in_array( LOGGED_IN_COOKIE, $this->skip_cookies, true ) ) {
+			$this->skip_cookies[] = LOGGED_IN_COOKIE;
+		}
+	}
+
+	/**
 	 * Return whether or not user related cookies have been detected
 	 *
 	 * @since 2.3.0
@@ -688,44 +719,32 @@ HTML;
 			return false;
 		}
 
+		// Set cookies used to skip
+		$this->set_skip_cookies();
+
 		// Get cookie keys
 		$cookie_keys = array_keys( $_COOKIE );
 
 		// Loop through keys
-		foreach ( $cookie_keys as $this->cookie ) {
+		foreach ( $cookie_keys as $cookie_key ) {
 
-			// Skip cookie
-			if ( in_array( $this->cookie, $this->noskip_cookies ) ) {
+			// Skip cookie and keep caching
+			if ( in_array( $cookie_key, $this->noskip_cookies, true ) ) {
 				continue;
 			}
 
-			// Auth cookie
-			if ( substr( $this->cookie, 0, 2 ) === 'wp' ) {
+			// Don't skip cookie, and don't cache
+			if ( in_array( $cookie_key, $this->skip_cookies, true ) ) {
 				return true;
 			}
 
-			// Auth cookie
-			if ( substr( $this->cookie, 0, 9 ) === 'wordpress' ) {
+			// Comment cookie, so don't cache
+			if ( substr( $cookie_key, 0, 14 ) === 'comment_author' ) {
 				return true;
 			}
 
-			// Comment cookie
-			if ( substr( $this->cookie, 0, 14 ) === 'comment_author' ) {
-				return true;
-			}
-
-			// Auth cookie
-			if ( defined( 'AUTH_COOKIE' ) && ( $this->cookie === AUTH_COOKIE ) ) {
-				return true;
-			}
-
-			// User cookie
-			if ( defined( 'USER_COOKIE' ) && ( $this->cookie === USER_COOKIE ) ) {
-				return true;
-			}
-
-			// Logged-in cookie
-			if ( defined( 'LOGGED_IN_COOKIE' ) && ( $this->cookie === LOGGED_IN_COOKIE ) ) {
+			// Generic 'wordpress' cookies (that are not test cookies)
+			if ( ( substr( $cookie_key, 0, 9 ) === 'wordpress' ) && ( $cookie_key !== 'wordpress_test_cookie' ) ) {
 				return true;
 			}
 		}
