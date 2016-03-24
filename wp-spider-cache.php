@@ -1189,8 +1189,8 @@ class WP_Spider_Cache_UI {
 		$url_key = md5( $url );
 
 		// Get cache objects
-		$output_cache = wp_output_cache();
-		$object_cache = wp_object_cache();
+		$output_cache = wp_output_cache_init();
+		$object_cache = wp_object_cache_init();
 
 		// Bail if either cache is missing
 		if ( empty( $output_cache ) || empty( $object_cache ) ) {
