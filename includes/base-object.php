@@ -89,7 +89,7 @@ class WP_Spider_Cache_Object_Base {
 	 *
 	 * @var array
 	 */
-	public $global_groups = array( 'users', 'userlogins', 'usermeta', 'user_meta', 'useremail', 'userslugs', 'site-transient', 'site-options', 'site-lookup', 'blog-aliases', 'blog-lookup', 'blog-details', 'rss', 'global-posts', 'blog-id-cache', 'plugins', 'themes', 'networks' );
+	public $global_groups = array( 'users', 'userlogins', 'usermeta', 'user_meta', 'useremail', 'userslugs', 'site-transient', 'site-options', 'site-lookup', 'blog-aliases', 'blog-lookup', 'blog-details', 'rss', 'global-posts', 'blog-id-cache', 'plugins', 'themes', 'networks', 'spider_cache' );
 
 	/**
 	 * List of groups not saved to cache.
