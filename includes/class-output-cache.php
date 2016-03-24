@@ -439,7 +439,7 @@ class WP_Spider_Cache_Output {
 	 */
 	protected function generate_keys() {
 		$this->key     = md5( serialize( $this->keys ) );
-		$this->req_key = $this->key . '_req';
+		$this->req_key = "{$this->key}_req";
 	}
 
 	/**
