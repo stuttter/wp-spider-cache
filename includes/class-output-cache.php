@@ -257,7 +257,7 @@ class WP_Spider_Cache_Output {
 		foreach ( $headers as $k => $values ) {
 			$clobber = true;
 			foreach ( $values as $v ) {
-				header( "{$k}: {$v}", $clobber );
+				@header( "{$k}: {$v}", $clobber );
 				$clobber = false;
 			}
 		}
@@ -373,11 +373,11 @@ class WP_Spider_Cache_Output {
 
 			// Don't clobber Last-Modified header if already set, e.g. by WP::send_headers()
 			if ( ! isset( $this->cache['headers']['Last-Modified'] ) ) {
-				header( 'Last-Modified: ' . gmdate( 'D, d M Y H:i:s', $this->cache['time'] ) . ' GMT', true );
+				@header( 'Last-Modified: ' . gmdate( 'D, d M Y H:i:s', $this->cache['time'] ) . ' GMT', true );
 			}
 
 			if ( ! isset( $this->cache['headers']['Cache-Control'] ) ) {
-				header( "Cache-Control: max-age={$this->max_age}, must-revalidate", false );
+				@header( "Cache-Control: max-age={$this->max_age}, must-revalidate", false );
 			}
 		}
 
@@ -525,7 +525,7 @@ HTML;
 		// Necessary to prevent clients using cached version after login cookies
 		// set. If this is a problem, comment it out and remove all
 		// Last-Modified headers.
-		header( 'Vary: Cookie', false );
+		@header( 'Vary: Cookie', false );
 
 		// Things that define a unique page.
 		if ( isset( $_SERVER['QUERY_STRING'] ) ) {
@@ -595,7 +595,7 @@ HTML;
 				$this->do_headers( $this->headers );
 
 				if ( ! empty( $is_IIS ) ) {
-					header( "Refresh: 0;url={$location}" );
+					@header( "Refresh: 0;url={$location}" );
 				} else {
 					if ( php_sapi_name() !== 'cgi-fcgi' ) {
 						$texts = array(
@@ -610,11 +610,11 @@ HTML;
 						);
 
 						isset( $texts[ $status ] )
-							? header( "{$protocol} {$status} {$texts[ $status ]}" )
-							: header( "{$protocol} 302 Found" );
+							? @header( "{$protocol} {$status} {$texts[ $status ]}" )
+							: @header( "{$protocol} 302 Found" );
 					}
 
-					header( "Location: {$location}" );
+					@header( "Location: {$location}" );
 				}
 
 				exit;
@@ -641,8 +641,8 @@ HTML;
 			// Use the spider_cache save time for Last-Modified so we can issue
 			// "304 Not Modified" but don't clobber a cached Last-Modified header.
 			if ( $this->cache_control && ! isset( $this->cache['headers']['Last-Modified'][0] ) ) {
-				header( 'Last-Modified: ' . gmdate( 'D, d M Y H:i:s', $this->cache['time'] ) . ' GMT', true );
-				header( 'Cache-Control: max-age=' . ( $this->cache['max_age'] - $this->started + $this->cache['time'] ) . ', must-revalidate', true );
+				@header( 'Last-Modified: ' . gmdate( 'D, d M Y H:i:s', $this->cache['time'] ) . ' GMT', true );
+				@header( 'Cache-Control: max-age=' . ( $this->cache['max_age'] - $this->started + $this->cache['time'] ) . ', must-revalidate', true );
 			}
 
 			// Add some debug info just before </head>
@@ -654,13 +654,13 @@ HTML;
 
 			// Bail if not modified
 			if ( true === $three_oh_four ) {
-				header( "HTTP/1.1 304 Not Modified", true, 304 );
+				@header( "HTTP/1.1 304 Not Modified", true, 304 );
 				die;
 			}
 
 			// Set header if cached
 			if ( ! empty( $this->cache['status_header'] ) ) {
-				header( $this->cache['status_header'], true );
+				@header( $this->cache['status_header'], true );
 			}
 
 			// Have you ever heard a death rattle before?
