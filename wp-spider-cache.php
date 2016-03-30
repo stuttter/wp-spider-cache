@@ -132,10 +132,12 @@ class WP_Spider_Cache_UI {
 		// Notices
 		add_action( 'spider_cache_notice', array( $this, 'notice' ) );
 
-		// Admin area UI
-		add_action( 'admin_menu',            array( $this, 'admin_menu'    ) );
-		add_action( 'user_admin_menu',       array( $this, 'admin_menu'    ) );
-		add_action( 'network_admin_menu',    array( $this, 'admin_menu'    ) );
+		// Admin menus
+		add_action( 'admin_menu',            array( $this, 'admin_menu' ) );
+		add_action( 'user_admin_menu',       array( $this, 'admin_menu' ) );
+		add_action( 'network_admin_menu',    array( $this, 'admin_menu' ) );
+
+		// Admin styling
 		add_action( 'admin_enqueue_scripts', array( $this, 'admin_enqueue' ) );
 
 		// AJAX
@@ -143,6 +145,9 @@ class WP_Spider_Cache_UI {
 		add_action( 'wp_ajax_sc-get-instance', array( $this, 'ajax_get_instance' ) );
 		add_action( 'wp_ajax_sc-flush-group',  array( $this, 'ajax_flush_group'  ) );
 		add_action( 'wp_ajax_sc-remove-item',  array( $this, 'ajax_remove_item'  ) );
+
+		// Capabilities
+		add_filter( 'map_meta_cap', array( $this, 'map_meta_cap' ), 10, 2 );
 
 		// Posts
 		add_action( 'clean_post_cache', array( $this, 'clean_post' ) );
@@ -194,6 +199,27 @@ class WP_Spider_Cache_UI {
 			'no_results'         => $this->get_no_results_row(),
 			'refreshing_results' => $this->get_refreshing_results_row()
 		) );
+	}
+
+	/**
+	 * Map `manage_cache` capability
+	 *
+	 * @since 2.3.0
+	 *
+	 * @param array  $caps
+	 * @param string $cap
+	 */
+	public function map_meta_cap( $caps = array(), $cap = '' ) {
+
+		// Map single-site cap check to 'manage_options'
+		if ( 'manage_cache' === $cap ) {
+			if ( ! is_multisite() ) {
+				$caps = array( 'manage_options' );
+			}
+		}
+
+		// Return maybe-mapped caps
+		return $caps;
 	}
 
 	/**
