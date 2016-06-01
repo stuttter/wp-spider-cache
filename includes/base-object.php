@@ -96,7 +96,7 @@ class WP_Spider_Cache_Object_Base {
 	 *
 	 * @var array
 	 */
-	public $no_mc_groups = array( 'comment', 'counts' );
+	public $no_mc_groups = array( 'counts' );
 
 	/**
 	 * List of groups to only look locally for
