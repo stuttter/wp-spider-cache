@@ -38,7 +38,7 @@ class WP_Spider_Cache_UI {
 	 *
 	 * @var string
 	 */
-	private $asset_version = '201607130001';
+	private $asset_version = '201602160001';
 
 	/**
 	 * The resulting page's hook_suffix.
