@@ -87,20 +87,20 @@ http://github.com/stuttter/wp-spider-cache
 
 == Changelog ==
 
-= 2.2.0 =
+= [2.2.0] - 2016-07-29 =
 * Refactoring throughout
 * Adding caps
 * Cache exempt cookie
 
-= 2.1.1 =
+= [2.1.1] - 2016-02-15 =
 * Sanity checks for Memcached & drop-ins
 
-= 2.1.0 =
+= [2.1.0] - 2016-02-15 =
 * Refactor drop-ins
 * More accurate debug times
 * More protective method scopes
 * Better output cache encapsulation
 * Rename a few old functions
 
-= 2.0.0 =
+= [2.0.0] - 2016-02-15 =
 * Initial release
