@@ -87,8 +87,13 @@ http://github.com/stuttter/wp-spider-cache
 
 == Changelog ==
 
+= 2.2.0 =
+* Refactoring throughout
+* Adding caps
+* Cache exempt cookie
+
 = 2.1.1 =
-* Saniity checks for Memcached & drop-ins
+* Sanity checks for Memcached & drop-ins
 
 = 2.1.0 =
 * Refactor drop-ins
