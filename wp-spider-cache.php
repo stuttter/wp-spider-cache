@@ -38,7 +38,7 @@ class WP_Spider_Cache_UI {
 	 *
 	 * @var string
 	 */
-	private $asset_version = '201607130001';
+	private $asset_version = '201608110001';
 
 	/**
 	 * The resulting page's hook_suffix.
@@ -48,15 +48,6 @@ class WP_Spider_Cache_UI {
 	 * @var string
 	 */
 	private $hook = '';
-
-	/**
-	 * Allows UI to be cache engine agnostic
-	 *
-	 * @since 2.2.0
-	 *
-	 * @var string
-	 */
-	private $cache_engine = '';
 
 	/**
 	 * Array of blog IDs to show
@@ -126,8 +117,6 @@ class WP_Spider_Cache_UI {
 	 * @since 2.0.0
 	 */
 	public function __construct() {
-
-		$this->cache_engine = 'Memcache';
 
 		// Notices
 		add_action( 'spider_cache_notice', array( $this, 'notice' ) );
@@ -1142,14 +1131,18 @@ class WP_Spider_Cache_UI {
 			}
 		}
 
-		// No cache engine
-		if ( ! class_exists( $this->cache_engine ) ) {
-			$message = sprintf( esc_html__( 'Please install the %s extension.', 'wp-spider-cache' ), $this->cache_engine );
-		}
-
 		// No object cache
 		if ( ! function_exists( 'wp_object_cache' ) ) {
 			$message .= sprintf( esc_html__( 'Hmm. It looks like you do not have a persistent object cache installed. Did you forget to copy the drop-in plugins to %s?', 'wp-spider-cache' ), '<code>' . str_replace( ABSPATH, '', WP_CONTENT_DIR ) . '</code>' );
+		} else {
+
+			// Get cache engine
+			$cache_engine = wp_object_cache()->engine_name;
+
+			// Missing cache engine extension
+			if ( ! class_exists( $cache_engine ) ) {
+				$message .= sprintf( esc_html__( 'Please install the %s extension.', 'wp-spider-cache' ), $cache_engine );
+			}
 		}
 
 		// Bail if no message
