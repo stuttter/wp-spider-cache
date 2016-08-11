@@ -1137,7 +1137,7 @@ class WP_Spider_Cache_UI {
 		} else {
 
 			// Get cache engine
-			$cache_engine = wp_object_cache()->engine_name;
+			$cache_engine = wp_object_cache()->engine_class_name;
 
 			// Missing cache engine extension
 			if ( empty( $cache_engine ) ) {
