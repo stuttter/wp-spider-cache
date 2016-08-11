@@ -1140,7 +1140,9 @@ class WP_Spider_Cache_UI {
 			$cache_engine = wp_object_cache()->engine_name;
 
 			// Missing cache engine extension
-			if ( ! class_exists( $cache_engine ) ) {
+			if ( empty( $cache_engine ) ) {
+				$message .= esc_html__( 'Cache engine name missing from Object Cache class.', 'wp-spider-cache' );
+			} elseif ( ! class_exists( $cache_engine ) ) {
 				$message .= sprintf( esc_html__( 'Please install the %s extension.', 'wp-spider-cache' ), $cache_engine );
 			}
 		}
