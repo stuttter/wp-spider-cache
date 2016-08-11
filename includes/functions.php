@@ -858,7 +858,7 @@ function wp_cache_init() {
  * @since 2.0.0
  *
  * @global  WP_Spider_Cache_Object  $wp_object_cache   WordPress Object Cache
- * @return  object
+ * @return  WP_Spider_Cache_Object
  */
 function wp_object_cache() {
 
