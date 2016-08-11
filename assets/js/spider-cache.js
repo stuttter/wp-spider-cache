@@ -41,28 +41,29 @@
 		if ( $val ) {
 			$refreshInstance.prop( 'disabled', true );
 			$instanceStore.html( WP_Spider_Cache.refreshing_results );
-			$.ajax( {
-				type : 'post',
-				url  : ajaxurl,
-				data : {
-					action : 'sc-get-instance',
-					nonce  : $el.data( 'nonce' ),
-					name   : $val,
-					type   : $adminType.val()
-				},
-				cache   : false,
-				success : function ( data ) {
-					setTimeout( function() {
+			setTimeout( function() {
+				$.ajax( {
+					type : 'post',
+					url  : ajaxurl,
+					data : {
+						action : 'sc-get-instance',
+						nonce  : $el.data( 'nonce' ),
+						name   : $val,
+						type   : $adminType.val()
+					},
+					cache   : false,
+					success : function ( data ) {
 						if ( data ) {
 							$instanceStore.html( data );
 							$refreshInstance.show();
 						} else {
 							$instanceStore.html( WP_Spider_Cache.no_results );
 						}
-						$refreshInstance.prop( 'disabled', false );
-					}, 500 );
-				}
-			} );
+					}
+				} );
+
+				$refreshInstance.prop( 'disabled', false );
+			}, 500 );
 		}
 	}
 
