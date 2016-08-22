@@ -390,9 +390,15 @@ class WP_Spider_Cache_UI {
 
 		// Delete a key in a group
 		if ( ! empty( $_GET['key'] ) && ! empty( $_GET['group'] ) ) {
+			
+			// Decode
+			$k_code = base64_decode( $_GET['key']   );
+			$g_code = base64_decode( $_GET['group'] );
+
+			// Delete cache
 			wp_cache_delete(
-				$this->sanitize_key( $_GET['key']   ),
-				$this->sanitize_key( $_GET['group'] )
+				$this->sanitize_key( $k_code ),
+				$this->sanitize_key( $g_code )
 			);
 		}
 
@@ -409,9 +415,15 @@ class WP_Spider_Cache_UI {
 
 		// Bail if invalid posted data
 		if ( ! empty( $_GET['key'] ) && ! empty( $_GET['group'] ) ) {
+
+			// Decode
+			$k_code = base64_decode( $_GET['key']   );
+			$g_code = base64_decode( $_GET['group'] );
+
+			// Get the item
 			$this->do_item(
-				$this->sanitize_key( $_GET['key']   ),
-				$this->sanitize_key( $_GET['group'] )
+				$this->sanitize_key( $k_code ),
+				$this->sanitize_key( $g_code )
 			);
 		}
 
@@ -774,11 +786,15 @@ class WP_Spider_Cache_UI {
 		// Loop through keys and output data & action links
 		foreach ( $keys as $key ) :
 
+			// Encode
+			$k_code = base64_encode( $key   );
+			$g_code = base64_encode( $group );
+
 			// Get URL
 			$get_url = add_query_arg( array(
 				'blog_id' => (int) $blog_id,
-				'group'   => $this->sanitize_key( $group ),
-				'key'     => $this->sanitize_key( $key   ),
+				'group'   => $this->sanitize_key( $g_code ),
+				'key'     => $this->sanitize_key( $k_code ),
 				'action'  => 'sc-get-item',
 				'nonce'   => wp_create_nonce( self::GET_NONCE    ),
 			), $admin_url );
@@ -791,7 +807,7 @@ class WP_Spider_Cache_UI {
 			// Remove URL
 			$remove_url = add_query_arg( array(
 				'group'   => $this->sanitize_key( $include_blog_id ),
-				'key'     => $this->sanitize_key( $key             ),
+				'key'     => $this->sanitize_key( $k_code        ),
 				'action'  => 'sc-remove-item',
 				'nonce'   => wp_create_nonce( self::REMOVE_NONCE )
 			), $admin_url ); ?>
@@ -1080,7 +1096,7 @@ class WP_Spider_Cache_UI {
 	 * @return string
 	 */
 	private function sanitize_key( $key = '' ) {
-		return preg_replace( '/[^a-z0-9:_\-]/', '', $key );
+		return trim( $key );
 	}
 
 	/**
