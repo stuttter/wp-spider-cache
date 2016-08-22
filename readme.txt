@@ -3,7 +3,7 @@ Contributors: johnjamesjacoby, stuttter
 Tags: cache, object, output, admin, memcache, memcached
 Requires at least: 4.4
 Tested up to: 4.6
-Stable tag: 2.2.1
+Stable tag: 3.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=9Q4F4EL5YJ62J
@@ -86,6 +86,9 @@ The WordPress support forums: https://wordpress.org/support/plugin/wp-spider-cac
 http://github.com/stuttter/wp-spider-cache
 
 == Changelog ==
+
+= [3.0.10] - 2016-08-21 =
+* Improved cache view using Thickbox
 
 = [2.2.1] - 2016-07-29 =
 * Asset bump
