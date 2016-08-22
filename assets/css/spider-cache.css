@@ -4,7 +4,7 @@
 }
 
 .spider-cache table th.cache-group {
-	width: 20%;
+	width: 12%;
 }
 
 .spider-cache table th.keys {
@@ -15,9 +15,24 @@
 	display: inline-block;
 }
 
-.spider-cache textarea.sc-item {
-	width: 100%;
+#TB_ajaxContent table.sc-item td,
+#TB_ajaxContent table.sc-item th {
+	padding: 0;
+	margin: 0;
+}
+
+#TB_ajaxContent table.sc-item th {
+	vertical-align: middle;
+	width: 20%;
+}
+
+#TB_ajaxContent table.sc-item pre {
 	font-family: monospace;
+	display: inline-block;
+	padding: 5px 10px;
+	margin: 3px;
+	background-color: #eee;
+	line-height: 2em;
 }
 
 .spider-cache .sc-toolbar-secondary {

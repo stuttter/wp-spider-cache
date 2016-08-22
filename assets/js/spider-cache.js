@@ -10,7 +10,8 @@
 		$refreshResults,
 		$adminType,
 		$showItem,
-		$searchResults;
+		$searchResults,
+		$modalWindow;
 
 	function remove_group( el ) {
 		return function () {
@@ -146,10 +147,10 @@
 					type    : 'post',
 					url     : e.currentTarget.href,
 					success : function ( data ) {
-						$showItem.html( data );
-						$showItem.show();
+						$modalWindow = $( '#TB_ajaxContent' );
+						$showItem.html( data ).detach().appendTo( $modalWindow );
 						elem.parents( 'tr' ).removeClass( 'row-updating' );
-						window.location.hash = 'sc-wrapper';
+						window.location.hash = 'sc-wrapper';							
 					}
 				} );
 				return false;

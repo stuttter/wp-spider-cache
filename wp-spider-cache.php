@@ -390,7 +390,7 @@ class WP_Spider_Cache_UI {
 
 		// Delete a key in a group
 		if ( ! empty( $_GET['key'] ) && ! empty( $_GET['group'] ) ) {
-			
+
 			// Decode
 			$k_code = base64_decode( $_GET['key']   );
 			$g_code = base64_decode( $_GET['group'] );
@@ -613,31 +613,44 @@ class WP_Spider_Cache_UI {
 	 */
 	public function do_item( $key, $group ) {
 
+		// Require pretty var_dump()
+		require_once __DIR__ . '/includes/class-var-dump.php';
+
 		// Get results directly from cache
 		$cache   = wp_cache_get( $key, $group );
 		$full    = wp_cache_get_key( $key, $group );
 		$code    = wp_cache_get_result_code();
 		$message = wp_cache_get_result_message();
 
-		// @todo Something prettier with cached value
-		$value   = is_array( $cache ) || is_object( $cache )
-			? serialize( $cache )
-			: $cache;
-
 		// Not found?
-		if ( false === $value ) {
-			$value = 'ERR';
-		}
+		if ( false === $cache ) {
+			$cache = 'ERR';
+		} ?>
 
-		// Combine results
-		$results =
-			sprintf( esc_html__( 'Key:     %s',      'wp-spider-cache' ), $key            ) . "\n" .
-			sprintf( esc_html__( 'Group:   %s',      'wp-spider-cache' ), $group          ) . "\n" .
-			sprintf( esc_html__( 'Full:    %s',      'wp-spider-cache' ), $full           ) . "\n" .
-			sprintf( esc_html__( 'Code:    %s - %s', 'wp-spider-cache' ), $code, $message ) . "\n" .
-			sprintf( esc_html__( 'Value:   %s',      'wp-spider-cache' ), $value          ); ?>
-
-		<textarea class="sc-item" class="widefat" rows="10" cols="35"><?php echo esc_textarea( $results ); ?></textarea>
+		<table class="form-table sc-item">
+			<tbody>
+				<tr>
+					<th><?php esc_html_e( 'Key', 'wp-spider-cache' ); ?></th>
+					<td><pre><?php echo esc_html( $key ); ?></pre></td>
+				</tr>
+				<tr>
+					<th><?php esc_html_e( 'Group', 'wp-spider-cache' ); ?></th>
+					<td><pre><?php echo esc_html( $group ); ?></pre></td>
+				</tr>
+				<tr>
+					<th><?php esc_html_e( 'Full', 'wp-spider-cache' ); ?></th>
+					<td><pre><?php echo esc_html( $full ); ?></pre></td>
+				</tr>
+				<tr>
+					<th><?php esc_html_e( 'Code', 'wp-spider-cache' ); ?></th>
+					<td><pre><?php echo esc_html( "{$code} - {$message}" ); ?></pre></td>
+				</tr>
+				<tr>
+					<th><?php esc_html_e( 'Value', 'wp-spider-cache' ); ?></th>
+					<td><?php WP_Spider_Cache_Var_Dump::dump( $cache ); ?></td>
+				</tr>
+			</tbody>
+		</table>
 
 		<?php
 	}
@@ -778,7 +791,7 @@ class WP_Spider_Cache_UI {
 	private function get_cache_key_links( $blog_id = 0, $group = '', $keys = array() ) {
 
 		// Setup variables used in the loop
-		$admin_url = admin_url( 'admin-ajax.php' );
+		$admin_url = admin_url( 'admin-ajax.php' ) . '#TB_inline?width=600&height=600&inlineId=sc-show-item';
 
 		// Start the output buffer
 		ob_start();
@@ -818,7 +831,7 @@ class WP_Spider_Cache_UI {
 					<span class="trash">
 						<a class="sc-remove-item" href="<?php echo esc_url( $remove_url ); ?>"><?php esc_html_e( 'Remove', 'wp-spider-cache' ); ?></a>
 					</span>
-					| <a class="sc-view-item" href="<?php echo esc_url( $get_url ); ?>"><?php esc_html_e( 'View', 'wp-spider-cache' ); ?></a>
+					| <a class="sc-view-item thickbox" href="<?php echo esc_url( $get_url ); ?>"><?php esc_html_e( 'View', 'wp-spider-cache' ); ?></a>
 				</div>
 			</div>
 
@@ -860,7 +873,9 @@ class WP_Spider_Cache_UI {
 	 * @since 2.0.0
 	 */
 	public function page() {
-		?>
+
+		// Alan Thickbox
+		add_thickbox(); ?>
 
 		<div class="wrap spider-cache" id="sc-wrapper">
 			<h2><?php esc_html_e( 'Spider Cache', 'wp-spider-cache' ); ?></h2>
