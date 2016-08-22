@@ -97,7 +97,6 @@
 		} );
 
 		$refreshInstance.click( function () {
-			$showItem.hide();
 			$instanceSelector.trigger( 'change' );
 			return false;
 		} );
