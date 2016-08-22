@@ -75,7 +75,7 @@ class WP_Spider_Cache_Var_Dump {
 
 		// Loop through maps & replace with callback
 		foreach ( $maps as $function => $pattern ) {
-			$output = preg_replace_callback( $pattern, array( 'self', '_process_' . $function ), $output );
+			$output = preg_replace_callback( $pattern, array( 'self', 'process_' . $function ), $output );
 		}
 
 		// HTML - Do not escape here

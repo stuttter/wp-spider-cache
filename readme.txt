@@ -87,6 +87,9 @@ http://github.com/stuttter/wp-spider-cache
 
 == Changelog ==
 
+= [3.0.2] - 2016-08-22 =
+* Use correct callback functions
+
 = [3.0.1] - 2016-08-21 =
 * Fix bug relating to Thickbox refresh
 
