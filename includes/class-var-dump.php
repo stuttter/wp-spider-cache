@@ -45,12 +45,17 @@ class WP_Spider_Cache_Var_Dump {
 	 */
 	public static function dump( $variable = false ) {
 
-		// Check if var_dump() is available
+		// Holds checks for var_dump() viability
+		$no_dump = array();
+
+		// var_dump is disabled
 		$disabled = (array) explode( ',', ini_get( 'disable_functions' ) );
-		$no_dump  = in_array( 'var_dump', $disabled, true );
+		if ( in_array( 'var_dump', $disabled, true ) ) {
+			$no_dump['disabled'] = true;
+		}
 
 		// Bail early if var_dump is disabled
-		if ( true === $no_dump ) {
+		if ( ! empty( $no_dump ) ) {
 			echo '<pre>' . esc_html( maybe_serialize( $variable ) ) . '</pre>';
 			return;
 		}
@@ -63,7 +68,20 @@ class WP_Spider_Cache_Var_Dump {
 
 		// Get the output
 		$output = ob_get_clean();
-		$maps   = array(
+
+		// No new lines after array/object items
+		$output = str_replace( "=>\n", '=>', $output );
+
+		// No stray whitespace before type castings
+		$output = preg_replace( '/=>\s+/', '=> ', $output );
+
+		// Already using pretty var_dump()
+		if ( ini_get( 'xdebug.overload_var_dump' ) && ini_get( 'html_errors' ) ) {
+			echo '<pre>' . $output . '</pre>';
+			return;
+		}
+
+		$maps = array(
 			'string'    => '/(string\((?P<length>\d+)\)) (?P<value>\"(?<!\\\).*\")/i',
 			'array'     => '/\[\"(?P<key>.+)\"(?:\:\"(?P<class>[a-z0-9_\\\]+)\")?(?:\:(?P<scope>public|protected|private))?\]=>/Ui',
 			'countable' => '/(?P<type>array|int|string)\((?P<count>\d+)\)/',
@@ -91,7 +109,9 @@ class WP_Spider_Cache_Var_Dump {
 	 * @return string
 	 */
 	private static function process_string( array $matches ) {
-		return '<span style="color: #0000FF;">string</span>(<span style="color: #1287DB;">' . esc_html( $matches[ 'length' ] ) . ')</span> <span style="color: #6B6E6E;">' . esc_html( $matches[ 'value' ] ) . '</span>';
+		$length = '<span style="color: #AA0000;">string</span>(<span style="color: #1287DB;">' . esc_html( $matches[ 'length' ] ) . '</span>)';
+		$value  = '<span style="color: #6B6E6E;">' . esc_html( $matches[ 'value' ] ) . '</span>';
+		return $length . $value;
 	}
 
 	/**
@@ -111,16 +131,16 @@ class WP_Spider_Cache_Var_Dump {
 
 		// prepare the parent class name
 		if ( isset( $matches[ 'class' ] ) && !empty( $matches[ 'class' ] ) ) {
-			$class = ':<span style="color: #4D5D94;">"' .  esc_html( $matches[ 'class' ] ) . '"</span>';
+			$class = ':<span style="color: #4D5D94;">"' . esc_html( $matches[ 'class' ] ) . '"</span>';
 		}
 
 		// prepare the scope indicator
 		if ( isset( $matches[ 'scope' ] ) && !empty( $matches[ 'scope' ] ) ) {
-			$scope = ':<span style="color: #666666;">' .  esc_html( $matches[ 'scope' ] ) . '</span>';
+			$scope = ':<span style="color: #666666;">' . esc_html( $matches[ 'scope' ] ) . '</span>';
 		}
 
 		// return the final string
-		return '[' . $key . $class . $scope . ']=>';
+		return '[' . $key . $class . $scope . '] ' . esc_html( '=>' );
 	}
 
 	/**
@@ -133,8 +153,8 @@ class WP_Spider_Cache_Var_Dump {
 	 * @return string
 	 */
 	private static function process_countable( array $matches ) {
-		$type  = '<span style="color: #0000FF;">' .  esc_html( $matches[ 'type' ] ) . '</span>';
-		$count = '(<span style="color: #1287DB;">' .  esc_html( $matches[ 'count' ] ) . '</span>)';
+		$type  = '<span style="color: #AA0000;">' . esc_html( $matches[ 'type' ] ) . '</span>';
+		$count = '(<span style="color: #1287DB;">' . esc_html( $matches[ 'count' ] ) . '</span>)';
 
 		return $type . $count;
 	}
@@ -148,7 +168,7 @@ class WP_Spider_Cache_Var_Dump {
 	 * @return string
 	 */
 	private static function process_bool( array $matches ) {
-		return '<span style="color: #0000FF;">bool</span>(<span style="color: #0000FF;">' .  esc_html( $matches[ 'value' ] ) . '</span>)';
+		return '<span style="color: #AA0000;">bool</span>(<span style="color: #AA0000;">' . esc_html( $matches[ 'value' ] ) . '</span>)';
 	}
 
 	/**
@@ -160,7 +180,7 @@ class WP_Spider_Cache_Var_Dump {
 	 * @return string
 	 */
 	private static function process_float( array $matches ) {
-		return '<span style="color: #0000FF;">float</span>(<span style="color: #1287DB;">' .  esc_html( $matches[ 'value' ] ) . '</span>)';
+		return '<span style="color: #AA0000;">float</span>(<span style="color: #1287DB;">' . esc_html( $matches[ 'value' ] ) . '</span>)';
 	}
 
 	/**
@@ -172,7 +192,9 @@ class WP_Spider_Cache_Var_Dump {
 	 * @return string
 	 */
 	private static function process_resource( array $matches ) {
-		return '<span style="color: #0000FF;">resource</span>(<span style="color: #1287DB;">' .  esc_html( $matches[ 'count' ] ) . '</span>) of type (<span style="color: #4D5D94;">' . esc_html( $matches[ 'class' ] ) . '</span>)';
+		$count = '<span style="color: #AA0000;">resource</span>(<span style="color: #1287DB;">' . esc_html( $matches[ 'count' ] ) . '</span>)';
+		$type  = ' of type (<span style="color: #4D5D94;">' . esc_html( $matches[ 'class' ] ) . '</span>)';
+		return $count . $type;
 	}
 
 	/**
@@ -184,6 +206,8 @@ class WP_Spider_Cache_Var_Dump {
 	 * @return string
 	 */
 	private static function process_object( array $matches ) {
-		return '<span style="color: #0000FF;">object</span>(<span style="color: #4D5D94;">' .  esc_html( $matches[ 'class' ] ) . '</span>)#' . esc_html( $matches[ 'id' ] ) . ' (<span style="color: #1287DB;">' . esc_html( $matches[ 'count' ] ) . '</span>)';
+		$class = '<span style="color: #AA0000;">object</span>(<span style="color: #4D5D94;">' . esc_html( $matches[ 'class' ] ) . '</span>)#' . esc_html( $matches[ 'id' ] );
+		$count = '(<span style="color: #1287DB;">' . esc_html( $matches[ 'count' ] ) . '</span>)';
+		return $class . $count;
 	}
 }

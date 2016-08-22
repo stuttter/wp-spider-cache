@@ -33,6 +33,13 @@
 	margin: 3px;
 	background-color: #eee;
 	line-height: 2em;
+	overflow: auto;
+	white-space: pre;
+	tab-size: 4;
+}
+
+#TB_ajaxContent table.sc-item pre span {
+	display: inline;
 }
 
 .spider-cache .sc-toolbar-secondary {
