@@ -92,7 +92,7 @@ class WP_Spider_Cache_Object_Base {
 	public $global_groups = array( 'users', 'userlogins', 'usermeta', 'user_meta', 'useremail', 'userslugs', 'site-transient', 'site-options', 'site-lookup', 'blog-lookup', 'blog-details', 'rss', 'global-posts', 'blog-id-cache', 'networks', 'sites', 'site-details' );
 
 	/**
-	 * List of additionally supported, non-core, known, persistent global
+	 * List of additionally supported, non-core, known, persistent, global
 	 * cache-groups. This array is merged with $global_groups on construct.
 	 *
 	 * @var array
