@@ -97,7 +97,22 @@ class WP_Spider_Cache_Object_Base {
 	 *
 	 * @var array
 	 */
-	public $global_groups_extended = array( 'spider_cache', 'blog-aliases', 'blog_aliasmeta', 'blogmeta', 'plugins', 'themes' );
+	public $global_groups_extended = array(
+
+		// Internal
+		'spider_cache',
+
+		// Blog Aliases
+		'blog-aliases',
+		'blog_aliasmeta',
+
+		// Blog Meta
+		'blogmeta',
+
+		// Core (Persistent)
+		'plugins',
+		'themes'
+	);
 
 	/**
 	 * List of groups not saved to cache.
