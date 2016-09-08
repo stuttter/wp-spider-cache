@@ -315,17 +315,21 @@ class WP_Spider_Cache_UI {
 	 */
 	public function set_blog_ids() {
 
-		// Blog
-		if ( empty( $_POST['type'] ) || ( 'blog' === $_POST['type'] ) ) {
-			$this->blog_ids = array( (int) get_current_blog_id() );
+		// Sanitize type
+		$type = ! empty( $_POST['type'] )
+			? sanitize_key( $_POST['type'] )
+			: '';
 
-		// Network
-		} elseif ( 'network' === $_POST['type'] ) {
-			$this->blog_ids = array( 0 );
-
-		// User
-		} elseif ( 'user' === $_POST['type'] ) {
-			$this->blog_ids = array( 0 );
+		// Set blog IDs
+		switch ( $type ) {
+			case 'user' :
+			case 'network' :
+				$this->blog_ids = array( 0 );
+				break;
+			case 'blog' :
+			case '' :
+				$this->blog_ids = array( (int) get_current_blog_id() );
+				break;
 		}
 	}
 
