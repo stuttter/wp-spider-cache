@@ -1,9 +1,9 @@
 === WP Spider Cache ===
 Contributors: johnjamesjacoby, stuttter
 Tags: cache, object, output, admin, memcache, memcached
-Requires at least: 4.4
-Tested up to: 4.6
-Stable tag: 3.0.3
+Requires at least: 4.6
+Tested up to: 4.7
+Stable tag: 3.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=9Q4F4EL5YJ62J
@@ -12,14 +12,14 @@ Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_i
 
 WP Spider Cache is your friendly neighborhood caching solution for WordPress. It uses Memcached to store both objects & page output.
 
-If you are familiar with Batcache and WP Super Cache, you'll be right at home here.
+It's heroic like Batcache & Super Cache, but younger, humbler, and a born web-slinger.
 
 It comes with:  
 
-*   Support for registering multiple Memcached servers
-*   An administration UI for viewing cache data
-*   Ability to flush specific keys & groups
-*   Drop-ins for `object-cache.php` and `advanced-cache.php`
+* Support for registering multiple cache servers
+* An administration UI for viewing cache data
+* Ability to flush specific keys & groups
+* Drop-ins for `object-cache.php` & `advanced-cache.php`
 
 = Also checkout =
 
@@ -76,16 +76,22 @@ Yes. Yes. Yes.
 * Jetpack
 * All Stuttter plugins
 * Keyring
+* User Switching
 
 = Where can I get support? =
 
-The WordPress support forums: https://wordpress.org/support/plugin/wp-spider-cache.
+Basic: https://wordpress.org/support/plugin/wp-spider-cache
+Priority: https://chat.flox.io/support/channels/wp-spider-cache
 
 = Where can I find documentation? =
 
 http://github.com/stuttter/wp-spider-cache
 
 == Changelog ==
+
+= [3.1.0] - 2016-09-08 =
+* Add extended global cache groups
+* 
 
 = [3.0.3] - 2016-08-22 =
 * Yield to XDebug if enabled

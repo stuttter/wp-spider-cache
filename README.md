@@ -34,6 +34,7 @@ Yes. Yes. Yes.
 * Jetpack
 * All Stuttter plugins
 * Keyring
+* User Switching
 
 ### Credits
 
@@ -46,7 +47,8 @@ This plugin is largely inspired by:
 
 ### Where can I get support?
 
-The WordPress support forums: https://wordpress.org/support/plugin/wp-spider-cache.
+Basic: https://wordpress.org/support/plugin/wp-spider-cache
+Priority: https://chat.flox.io/support/channels/wp-spider-cache
 
 ### Can I contribute?
 
