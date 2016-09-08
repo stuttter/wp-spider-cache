@@ -285,6 +285,7 @@ class WP_Spider_Cache_UI {
 
 		// Delete user caches
 		$cleared[] = wp_cache_delete( $_user->ID,            'users'      );
+		$cleared[] = wp_cache_delete( $_user->ID,            'usermeta'   );
 		$cleared[] = wp_cache_delete( $_user->ID,            'user_meta'  );
 		$cleared[] = wp_cache_delete( $_user->user_login,    'userlogins' );
 		$cleared[] = wp_cache_delete( $_user->user_nicename, 'userslugs'  );
