@@ -7,7 +7,7 @@
  * License:     GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Description: Your friendly neighborhood caching solution for WordPress
- * Version:     3.1.0
+ * Version:     3.2.0
  * Text Domain: wp-spider-cache
  * Domain Path: /assets/lang/
  */
@@ -559,11 +559,16 @@ class WP_Spider_Cache_UI {
 	 */
 	public function retrieve_keys( $server, $port = 11211 ) {
 
+		// Get slabs
+		$list = array();
+
+		// Bail if function is missing
+		if ( ! function_exists( 'wp_cache_get_extended_stats' ) ) {
+			return $list;
+		}
+
 		// No errors
 		$old_errors = error_reporting( 0 );
-
-		// Get slabs
-		$list  = array();
 
 		// Connect to cache server
 		wp_cache_connect( $server, $port );
@@ -713,8 +718,10 @@ class WP_Spider_Cache_UI {
 		$offset  = 0;
 
 		// Offset by 1 if using cache-key salt
-		if ( wp_object_cache()->cache_key_salt ) {
-			$offset = 1;
+		if ( function_exists( 'wp_object_cache' ) ) {
+			if ( wp_object_cache()->cache_key_salt ) {
+				$offset = 1;
+			}
 		}
 
 		// Get keys for this server and loop through them
@@ -1098,9 +1105,22 @@ class WP_Spider_Cache_UI {
 	 * @return array
 	 */
 	private function get_servers() {
-		return function_exists( 'wp_cache_get_server_list' )
-			? wp_cache_get_server_list()
-			: array();
+		$retval = array();
+
+		// Use drop-in function
+		if ( function_exists( 'wp_cache_get_server_list' ) ) {
+			$retval = wp_cache_get_server_list();
+
+		// Memcache exists on local server
+		} elseif ( class_exists( 'Memcache' ) ) {
+			$retval = array( array(
+				'host'   => '127.0.0.1',
+				'port'   => 11211,
+				'weight' => 10
+			) );
+		}
+
+		return $retval;
 	}
 
 	/**

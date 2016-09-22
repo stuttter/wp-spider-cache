@@ -3,7 +3,7 @@ Contributors: johnjamesjacoby, stuttter
 Tags: cache, object, output, admin, memcache, memcached
 Requires at least: 4.6
 Tested up to: 4.7
-Stable tag: 3.1.0
+Stable tag: 3.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=9Q4F4EL5YJ62J
@@ -17,9 +17,9 @@ It's heroic like Batcache & Super Cache, but younger, humbler, and a born web-sl
 It comes with:  
 
 * Support for registering multiple cache servers
-* An administration UI for viewing cache data
+* An administration interface for viewing cache data
 * Ability to flush specific keys & groups
-* Drop-ins for `object-cache.php` & `advanced-cache.php`
+* Drop-in plugins for `object-cache.php` & `advanced-cache.php`
 
 = Also checkout =
 
@@ -41,10 +41,10 @@ It comes with:
 
 This plugin is largely inspired by:
 
-*   Memcached
-*   Batcache
-*   Super Cache
-*   Johnny Cache
+* Memcached
+* Batcache
+* Super Cache
+* Johnny Cache
 
 == Screenshots ==
 
@@ -55,8 +55,8 @@ This plugin is largely inspired by:
 == Installation ==
 
 * Download and install using the built in WordPress plugin installer.
-* Optionally copy contents of `drop-ins` to your `wp-content` directory
-* Optionally activate in the "Plugins" area of your admin by clicking the "Activate" link.
+* Copy contents of `drop-ins` to your `wp-content` directory
+* Activate in the "Plugins" area of your admin by clicking the "Activate" link.
 * No further setup or configuration is necessary.
 
 == Frequently Asked Questions ==
@@ -72,16 +72,20 @@ Yes. Yes. Yes.
 = What other plugins has this been tested with? =
 
 * EasyDigitalDownloads
-* WooCommerce
 * Jetpack
-* All Stuttter plugins
 * Keyring
+* Stuttter plugins
 * User Switching
+* WooCommerce
 
 = Where can I get support? =
 
-Basic: https://wordpress.org/support/plugin/wp-spider-cache
-Priority: https://chat.flox.io/support/channels/wp-spider-cache
+This plugin is free for anyone to use.
+
+[Community support](https://wordpress.org/support/plugin/wp-spider-cache) is provided for free by existing users.
+[Priority support](https://chat.flox.io/support/channels/wp-spider-cache) is available to paying customers & volunteer contributors.
+
+If you require immediate assistance, please consider a paid support subscription.
 
 = Where can I find documentation? =
 
@@ -89,9 +93,11 @@ http://github.com/stuttter/wp-spider-cache
 
 == Changelog ==
 
+= [3.2.0] - 2016-09-22 =
+* Prevent fatal errors if packaged drop-ins are not used
+
 = [3.1.0] - 2016-09-08 =
 * Add extended global cache groups
-* 
 
 = [3.0.3] - 2016-08-22 =
 * Yield to XDebug if enabled

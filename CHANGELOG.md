@@ -1,3 +1,6 @@
+## 3.2.0 (2016-09-22)
+* Prevent fatals if packaged drop-ins are not used
+
 ## 3.0.3 (2016-08-22)
 * Yield to XDebug if enabled
 * Improve output of pretty var_dump
