@@ -177,7 +177,7 @@ class WP_Spider_Cache_UI {
 		}
 
 		// Setup the plugin URL, for enqueues
-		$this->asset_url = plugin_dir_url( __FILE__ );
+		$this->asset_url = plugin_dir_url( __FILE__ ) . 'wp-spider-cache/';
 
 		// Enqueue
 		wp_enqueue_style( 'wp-spider-cache', $this->asset_url . 'assets/css/spider-cache.css', array(),          $this->asset_version );
@@ -624,7 +624,7 @@ class WP_Spider_Cache_UI {
 	public function do_item( $key, $group ) {
 
 		// Require pretty var_dump()
-		require_once __DIR__ . '/includes/class-var-dump.php';
+		require_once __DIR__ . '/wp-spider-cache/includes/class-var-dump.php';
 
 		// Get results directly from cache
 		$cache   = wp_cache_get( $key, $group );
