@@ -16,7 +16,7 @@ if ( ! defined( 'WP_PLUGIN_DIR' ) ) {
 }
 
 // Required files
-require_once WP_PLUGIN_DIR . '/wp-spider-cache/includes/functions.php';
+require_once WP_PLUGIN_DIR . '/wp-spider-cache/wp-spider-cache/includes/functions.php';
 
 // Initialize the caches
 if ( ! wp_skip_output_cache() ) {
