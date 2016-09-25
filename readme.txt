@@ -95,6 +95,7 @@ http://github.com/stuttter/wp-spider-cache
 
 = [3.2.0] - 2016-09-22 =
 * Prevent fatal errors if packaged drop-ins are not used
+* Prevent fatal errors if supported back-ends are not installed
 
 = [3.1.0] - 2016-09-08 =
 * Add extended global cache groups

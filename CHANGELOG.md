@@ -1,5 +1,6 @@
 ## 3.2.0 (2016-09-22)
 * Prevent fatals if packaged drop-ins are not used
+* Prevent fatal errors if supported back-ends are not installed
 
 ## 3.0.3 (2016-08-22)
 * Yield to XDebug if enabled
