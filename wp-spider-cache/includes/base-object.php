@@ -43,6 +43,13 @@ class WP_Spider_Cache_Object_Base {
 	public $servers_global = '';
 
 	/**
+	 * Holds the fallback servers.
+	 *
+	 * @var array Something like: array( array( '127.0.0.1', 11211, 20 ) )
+	 */
+	public $servers_fallback = array();
+
+	/**
 	 * Holds the cache engine.
 	 *
 	 * @var Memcache, Redis, etc...
@@ -159,7 +166,7 @@ class WP_Spider_Cache_Object_Base {
 	 *
 	 * @param   null    $persistent_id      To create an instance that persists between requests, use persistent_id to specify a unique ID for the instance.
 	 */
-	public function __construct( $persistent_id = NULL ) {
+	public function __construct( $persistent_id = null ) {
 
 		// Set values for handling expiration times
 		$this->thirty_days = DAY_IN_SECONDS * 30;
@@ -176,6 +183,13 @@ class WP_Spider_Cache_Object_Base {
 		$this->set_prefixes();
 	}
 
+	public function __call( $name, $args = array() ) {
+		switch ( $name ) {
+			case 'getResultCode' :
+
+		}
+	}
+
 	/**
 	 * Set the daemon
 	 *
@@ -184,11 +198,16 @@ class WP_Spider_Cache_Object_Base {
 	 * @param int $persistent_id
 	 */
 	private function set_daemon( $persistent_id = 0 ) {
-		if ( is_null( $persistent_id ) || ! is_string( $persistent_id ) ) {
-			$this->daemon = new $this->daemon_class_name;
-		} else {
-			$this->daemon = new $this->daemon_class_name( $persistent_id );
+
+		// Bail if daemon not found
+		if ( ! class_exists( $this->daemon_class_name ) ) {
+			return;
 		}
+
+		// Set the daemon
+		$this->daemon = ( is_null( $persistent_id ) || ! is_string( $persistent_id ) )
+			? new $this->daemon_class_name
+			: $this->daemon_class_name( $persistent_id );
 	}
 
 	/**
@@ -245,12 +264,10 @@ class WP_Spider_Cache_Object_Base {
 		// Setup servers
 		$this->servers = ! empty( $GLOBALS[ $this->servers_global ] )
 			? $GLOBALS[ $this->servers_global ]
-			: array( array( '127.0.0.1', 11211, 20 ) ); // Memcached defaults
+			: $this->servers_fallback;
 
 		// Only add servers if daemon exists
-		if ( ! empty( $this->daemon ) ) {
-			$this->addServers( $this->servers );
-		}
+		$this->addServers( $this->servers );
 	}
 
 	/**
@@ -267,9 +284,10 @@ class WP_Spider_Cache_Object_Base {
 	 * @param   int         $expiration     The expiration time, defaults to 0.
 	 * @param   string      $server_key     The key identifying the server to store the value on.
 	 * @param   bool        $byKey          True to store in internal cache by key; false to not store by key
-	 * @return  bool                        Returns TRUE on success or FALSE on failure.
+	 * @return  bool                        Returns true on success or false on failure.
 	 */
 	public function add( $key, $value, $group = 'default', $expiration = 0, $server_key = '', $byKey = false ) {
+		$result = false;
 
 		/**
 		 * Ensuring that wp_suspend_cache_addition is defined before calling, because sometimes an advanced-cache.php
@@ -278,7 +296,7 @@ class WP_Spider_Cache_Object_Base {
 		 * wp_suspend_cache_addition will not be defined until wp-includes/functions.php is loaded.
 		 */
 		if ( function_exists( 'wp_suspend_cache_addition' ) && wp_suspend_cache_addition() ) {
-			return false;
+			return $result;
 		}
 
 		$derived_key = $this->buildKey( $key, $group );
@@ -289,7 +307,7 @@ class WP_Spider_Cache_Object_Base {
 
 			// Add does not set the value if the key exists; mimic that here
 			if ( isset( $this->cache[ $derived_key ] ) ) {
-				return false;
+				return $result;
 			}
 
 			$this->add_to_internal_cache( $derived_key, $value );
@@ -298,10 +316,10 @@ class WP_Spider_Cache_Object_Base {
 		}
 
 		// Save to cache
-		if ( false !== $byKey ) {
-			$result = $this->daemon->addByKey( $server_key, $derived_key, $value, $expiration );
-		} else {
-			$result = $this->daemon->add( $derived_key, $value, $expiration );
+		if ( method_exists( $this->daemon, 'add' ) ) {
+			$result = ( false !== $byKey )
+				? $this->daemon->addByKey( $server_key, $derived_key, $value, $expiration )
+				: $this->daemon->add( $derived_key, $value, $expiration );
 		}
 
 		// Store in runtime cache if add was successful
@@ -327,7 +345,7 @@ class WP_Spider_Cache_Object_Base {
 	 * @param   mixed       $value          The value to store.
 	 * @param   string      $group          The group value appended to the $key.
 	 * @param   int         $expiration     The expiration time, defaults to 0.
-	 * @return  bool                        Returns TRUE on success or FALSE on failure.
+	 * @return  bool                        Returns true on success or false on failure.
 	 */
 	public function addByKey( $server_key, $key, $value, $group = 'default', $expiration = 0 ) {
 		return $this->add( $key, $value, $group, $expiration, $server_key, true );
@@ -341,14 +359,16 @@ class WP_Spider_Cache_Object_Base {
 	 * @param   string      $host           The hostname of the server.
 	 * @param   int         $port           The port on which is running.
 	 * @param   int         $weight         The weight of the server relative to the total weight of all the servers in the pool.
-	 * @return  bool                        Returns TRUE on success or FALSE on failure.
+	 * @return  bool                        Returns true on success or false on failure.
 	 */
 	public function addServer( $host, $port, $weight = 0 ) {
 		$host   = is_string( $host ) ? $host : '127.0.0.1';
 		$port   = is_numeric( $port ) && $port > 0 ? $port : 11211;
 		$weight = is_numeric( $weight ) && $weight > 0 ? $weight : 1;
 
-		return $this->daemon->addServer( $host, $port, $weight );
+		return method_exists( $this->daemon, 'addServer' )
+			? $this->daemon->addServer( $host, $port, $weight )
+			: false;
 	}
 
 	/**
@@ -363,7 +383,9 @@ class WP_Spider_Cache_Object_Base {
 	 * @return  bool                        True on success; false on failure.
 	 */
 	public function addServers( $servers ) {
-		return $this->daemon->addServers( $servers );
+		return method_exists( $this->daemon, 'addServers' )
+			? $this->daemon->addServers( $servers )
+			: false;
 	}
 
 	/**
@@ -383,11 +405,13 @@ class WP_Spider_Cache_Object_Base {
 	 * @param   string      $group          The group value appended to the $key.
 	 * @param   string      $server_key     The key identifying the server to store the value on.
 	 * @param   bool        $byKey          True to store in internal cache by key; false to not store by key
-	 * @return  bool                        Returns TRUE on success or FALSE on failure.
+	 * @return  bool                        Returns true on success or false on failure.
 	 */
 	public function append( $key, $value, $group = 'default', $server_key = '', $byKey = false ) {
+		$result = false;
+
 		if ( ! is_string( $value ) && ! is_int( $value ) && ! is_float( $value ) ) {
-			return false;
+			return $result;
 		}
 
 		$derived_key = $this->buildKey( $key, $group );
@@ -400,13 +424,16 @@ class WP_Spider_Cache_Object_Base {
 
 			$combined = $this->combine_values( $this->cache[ $derived_key ], $value, 'app' );
 			$this->add_to_internal_cache( $derived_key, $combined );
+
 			return true;
 		}
 
 		// Append to cache value
-		$result = ( false !== $byKey )
-			? $this->daemon->appendByKey( $server_key, $derived_key, $value )
-			: $this->daemon->append( $derived_key, $value );
+		if ( method_exists( $this->daemon, 'append' ) ) {
+			$result = ( false !== $byKey )
+				? $this->daemon->appendByKey( $server_key, $derived_key, $value )
+				: $this->daemon->append( $derived_key, $value );
+		}
 
 		// Store in runtime cache if add was successful
 		if ( $this->success() ) {
@@ -433,7 +460,7 @@ class WP_Spider_Cache_Object_Base {
 	 * @param   string      $key            The key under which to store the value.
 	 * @param   mixed       $value          Must be string as appending mixed values is not well-defined
 	 * @param   string      $group          The group value appended to the $key.
-	 * @return  bool                        Returns TRUE on success or FALSE on failure.
+	 * @return  bool                        Returns true on success or false on failure.
 	 */
 	public function appendByKey( $server_key, $key, $value, $group = 'default' ) {
 		return $this->append( $key, $value, $group, $server_key, true );
@@ -454,9 +481,10 @@ class WP_Spider_Cache_Object_Base {
 	 * @param   int         $expiration     The expiration time, defaults to 0.
 	 * @param   string      $server_key     The key identifying the server to store the value on.
 	 * @param   bool        $byKey          True to store in internal cache by key; false to not store by key
-	 * @return  bool                        Returns TRUE on success or FALSE on failure.
+	 * @return  bool                        Returns true on success or false on failure.
 	 */
 	public function cas( $cas_token, $key, $value, $group = 'default', $expiration = 0, $server_key = '', $byKey = false ) {
+		$result      = false;
 		$derived_key = $this->buildKey( $key, $group );
 		$expiration  = $this->sanitize_expiration( $expiration );
 
@@ -471,9 +499,11 @@ class WP_Spider_Cache_Object_Base {
 		}
 
 		// Save to cache
-		$result = ( false !== $byKey )
-			? $this->daemon->casByKey( $cas_token, $server_key, $derived_key, $value, $expiration )
-			: $this->daemon->cas( $cas_token, $derived_key, $value, $expiration );
+		if ( method_exists( $this->daemon, 'cas' ) ) {
+			$result = ( false !== $byKey )
+				? $this->daemon->casByKey( $cas_token, $server_key, $derived_key, $value, $expiration )
+				: $this->daemon->cas( $cas_token, $derived_key, $value, $expiration );
+		}
 
 		// Store in runtime cache if cas was successful
 		if ( $this->success() ) {
@@ -497,7 +527,7 @@ class WP_Spider_Cache_Object_Base {
 	 * @param   mixed       $value          The value to store.
 	 * @param   string      $group          The group value appended to the $key.
 	 * @param   int         $expiration     The expiration time, defaults to 0.
-	 * @return  bool                        Returns TRUE on success or FALSE on failure.
+	 * @return  bool                        Returns true on success or false on failure.
 	 */
 	public function casByKey( $cas_token, $server_key, $key, $value, $group = 'default', $expiration = 0 ) {
 		return $this->cas( $cas_token, $key, $value, $group, $expiration, $server_key, true );
@@ -508,7 +538,7 @@ class WP_Spider_Cache_Object_Base {
 	 *
 	 * @link    http://php.net/manual/en/memcache.close.php
 	 *
-	 * @return  bool  Returns TRUE on success or FALSE on failure.
+	 * @return  bool  Returns true on success or false on failure.
 	 */
 	public function close() {
 		return true;
@@ -521,10 +551,12 @@ class WP_Spider_Cache_Object_Base {
 	 *
 	 * @param   string   $server The host where the daemon is listening for connections
 	 * @param   int      $port   The port where the daemon is listening for connections
-	 * @return  bool             Returns TRUE on success or FALSE on failure.
+	 * @return  bool             Returns true on success or false on failure.
 	 */
 	public function connect( $server = '127.0.0.1', $port = 11211 ) {
-		return $this->engine->connect( $server, $port );
+		return method_exists( $this->engine, 'connect' )
+			? $this->engine->connect( $server, $port )
+			: false;
 	}
 
 	/**
@@ -535,7 +567,7 @@ class WP_Spider_Cache_Object_Base {
 	 * @param string    $key    The key under which to store the value.
 	 * @param int       $offset The amount by which to decrement the item's value.
 	 * @param string    $group  The group value appended to the $key.
-	 * @return int|bool         Returns item's new value on success or FALSE on failure.
+	 * @return int|bool         Returns item's new value on success or false on failure.
 	 */
 	public function decrement( $key, $offset = 1, $group = 'default' ) {
 		$derived_key = $this->buildKey( $key, $group );
@@ -582,7 +614,7 @@ class WP_Spider_Cache_Object_Base {
 	 * @param string    $key    The key under which to store the value.
 	 * @param int       $offset The amount by which to decrement the item's value.
 	 * @param string    $group  The group value appended to the $key.
-	 * @return int|bool         Returns item's new value on success or FALSE on failure.
+	 * @return int|bool         Returns item's new value on success or false on failure.
 	 */
 	public function decr( $key, $offset = 1, $group = 'default' ) {
 		return $this->decrement( $key, $offset, $group );
@@ -603,9 +635,10 @@ class WP_Spider_Cache_Object_Base {
 	 * @param   int         $time       The amount of time the server will wait to delete the item in seconds.
 	 * @param   string      $server_key The key identifying the server to store the value on.
 	 * @param   bool        $byKey      True to store in internal cache by key; false to not store by key
-	 * @return  bool                    Returns TRUE on success or FALSE on failure.
+	 * @return  bool                    Returns true on success or false on failure.
 	 */
 	public function delete( $key, $group = 'default', $time = 0, $server_key = '', $byKey = false ) {
+		$result      = false;
 		$derived_key = $this->buildKey( $key, $group );
 
 		// Remove from no_mc_groups array
@@ -617,10 +650,10 @@ class WP_Spider_Cache_Object_Base {
 			return true;
 		}
 
-		if ( false !== $byKey ) {
-			$result = $this->daemon->deleteByKey( $server_key, $derived_key, $time );
-		} else {
-			$result = $this->daemon->delete( $derived_key, $time );
+		if ( method_exists( $this->daemon, 'delete' ) ) {
+			$result = ( false !== $byKey )
+				? $this->daemon->deleteByKey( $server_key, $derived_key, $time )
+				: $this->daemon->delete( $derived_key, $time );
 		}
 
 		if ( $this->success() ) {
@@ -644,7 +677,7 @@ class WP_Spider_Cache_Object_Base {
 	 * @param   string      $key        The key under which to store the value.
 	 * @param   string      $group      The group value appended to the $key.
 	 * @param   int         $time       The amount of time the server will wait to delete the item in seconds.
-	 * @return  bool                    Returns TRUE on success or FALSE on failure.
+	 * @return  bool                    Returns true on success or false on failure.
 	 */
 	public function deleteByKey( $server_key, $key, $group = 'default', $time = 0 ) {
 		return $this->delete( $key, $group, $time, $server_key, true );
@@ -655,7 +688,7 @@ class WP_Spider_Cache_Object_Base {
 	 *
 	 * @link http://www.php.net/manual/en/memcached.fetch.php
 	 *
-	 * @return array|bool   Returns the next result or FALSE on failure.
+	 * @return array|bool   Returns the next result or false on failure.
 	 */
 	public function fetch() {
 		return $this->daemon->fetch();
@@ -666,7 +699,7 @@ class WP_Spider_Cache_Object_Base {
 	 *
 	 * @link http://www.php.net/manual/en/memcached.fetchall.php
 	 *
-	 * @return  array|bool          Returns the results or FALSE on failure.
+	 * @return  array|bool          Returns the results or false on failure.
 	 */
 	public function fetchAll() {
 		return $this->daemon->fetchAll();
@@ -678,7 +711,7 @@ class WP_Spider_Cache_Object_Base {
 	 * @link http://www.php.net/manual/en/memcached.flush.php
 	 *
 	 * @param   int     $delay      Number of seconds to wait before invalidating the items.
-	 * @return  bool                Returns TRUE on success or FALSE on failure.
+	 * @return  bool                Returns true on success or false on failure.
 	 */
 	public function flush( $delay = 0 ) {
 		$result = $this->daemon->flush( $delay );
@@ -715,20 +748,18 @@ class WP_Spider_Cache_Object_Base {
 	 * @param   null|float      $cas_token  The variable to store the CAS token in.
 	 * @return  bool|mixed                  Cached object value.
 	 */
-	public function get( $key, $group = 'default', $force = false, &$found = null, $server_key = '', $byKey = false, $cache_cb = NULL, &$cas_token = NULL ) {
+	public function get( $key, $group = 'default', $force = false, &$found = null, $server_key = '', $byKey = false, $cache_cb = null, &$cas_token = null ) {
 		$derived_key = $this->buildKey( $key, $group );
 
 		// Assume object is not found
 		$found = $value = false;
 
 		// If either $cache_db, or $cas_token is set, must hit Memcached and bypass runtime cache
-		if ( ! is_null( $this->daemon ) ) {
+		if ( method_exists( $this->daemon, 'get' ) ) {
 			if ( func_num_args() > 6 && ! in_array( $group, $this->no_mc_groups, false ) ) {
-				if ( false !== $byKey ) {
-					$value = $this->daemon->getByKey( $server_key, $derived_key, $cache_cb, $cas_token );
-				} else {
-					$value = $this->daemon->get( $derived_key, $cache_cb, $cas_token );
-				}
+				$value = ( false !== $byKey )
+					? $this->daemon->getByKey( $server_key, $derived_key, $cache_cb, $cas_token )
+					: $this->daemon->get( $derived_key, $cache_cb, $cas_token );
 			} else {
 				if ( isset( $this->cache[ $derived_key ] ) ) {
 					$found = true;
@@ -736,11 +767,9 @@ class WP_Spider_Cache_Object_Base {
 				} elseif ( in_array( $group, $this->no_mc_groups, false ) ) {
 					return false;
 				} else {
-					if ( false !== $byKey ) {
-						$value = $this->daemon->getByKey( $server_key, $derived_key );
-					} else {
-						$value = $this->daemon->get( $derived_key );
-					}
+					$value = ( false !== $byKey )
+						? $this->daemon->getByKey( $server_key, $derived_key )
+						: $this->daemon->get( $derived_key );
 				}
 			}
 		}
@@ -776,7 +805,7 @@ class WP_Spider_Cache_Object_Base {
 	 * @param   null|float      $cas_token  The variable to store the CAS token in.
 	 * @return  bool|mixed                  Cached object value.
 	 */
-	public function getByKey( $server_key, $key, $group = 'default', $force = false, &$found = null, $cache_cb = NULL, &$cas_token = NULL ) {
+	public function getByKey( $server_key, $key, $group = 'default', $force = false, &$found = null, $cache_cb = null, &$cas_token = null ) {
 		/**
 		 * Need to be careful how "get" is called. If you send $cache_cb, and $cas_token, it will hit cache.
 		 * Only send those args if they were sent to this function.
@@ -796,12 +825,14 @@ class WP_Spider_Cache_Object_Base {
 	 * @param   string|array    $keys       Array or string of key(s) to request.
 	 * @param   string|array    $groups     Array or string of group(s) for the key(s). See buildKeys for more on how these are handled.
 	 * @param   bool            $with_cas   Whether to request CAS token values also.
-	 * @param   null            $value_cb   The result callback or NULL.
-	 * @return  bool                        Returns TRUE on success or FALSE on failure.
+	 * @param   null            $value_cb   The result callback or null.
+	 * @return  bool                        Returns true on success or false on failure.
 	 */
-	public function getDelayed( $keys, $groups = 'default', $with_cas = false, $value_cb = NULL ) {
+	public function getDelayed( $keys, $groups = 'default', $with_cas = false, $value_cb = null ) {
 		$derived_keys = $this->buildKeys( $keys, $groups );
-		return $this->daemon->getDelayed( $derived_keys, $with_cas, $value_cb );
+		return method_exists( $this->daemon, 'getDelayed' )
+			? $this->daemon->getDelayed( $derived_keys, $with_cas, $value_cb )
+			: false;
 	}
 
 	/**
@@ -813,12 +844,15 @@ class WP_Spider_Cache_Object_Base {
 	 * @param   string|array    $keys       Array or string of key(s) to request.
 	 * @param   string|array    $groups     Array or string of group(s) for the key(s). See buildKeys for more on how these are handled.
 	 * @param   bool            $with_cas   Whether to request CAS token values also.
-	 * @param   null            $value_cb   The result callback or NULL.
-	 * @return  bool                        Returns TRUE on success or FALSE on failure.
+	 * @param   null            $value_cb   The result callback or null.
+	 * @return  bool                        Returns true on success or false on failure.
 	 */
-	public function getDelayedByKey( $server_key, $keys, $groups = 'default', $with_cas = false, $value_cb = NULL ) {
+	public function getDelayedByKey( $server_key, $keys, $groups = 'default', $with_cas = false, $value_cb = null ) {
 		$derived_keys = $this->buildKeys( $keys, $groups );
-		return $this->daemon->getDelayedByKey( $server_key, $derived_keys, $with_cas, $value_cb );
+
+		return method_exists( $this->daemon, 'getDelayedByKey' )
+			? $this->daemon->getDelayedByKey( $server_key, $derived_keys, $with_cas, $value_cb )
+			: false;
 	}
 
 	/**
@@ -832,7 +866,9 @@ class WP_Spider_Cache_Object_Base {
 	 * @return  array
 	 */
 	public function getExtendedStats( $type, $slab_id = 0, $limit = 100 ) {
-		return $this->engine->getExtendedStats( $type, $slab_id, $limit );
+		return method_exists( $this->engine, 'getExtendedStats' )
+			? $this->engine->getExtendedStats( $type, $slab_id, $limit )
+			: array();
 	}
 
 	/**
@@ -847,10 +883,16 @@ class WP_Spider_Cache_Object_Base {
 	 * @param   string          $server_key The key identifying the server to store the value on.
 	 * @param   null|array      $cas_tokens The variable to store the CAS tokens for the found items.
 	 * @param   int             $flags      The flags for the get operation.
-	 * @return  bool|array                  Returns the array of found items or FALSE on failure.
+	 * @return  bool|array                  Returns the array of found items or false on failure.
 	 */
-	public function getMulti( $keys, $groups = 'default', $server_key = '', &$cas_tokens = NULL, $flags = NULL ) {
+	public function getMulti( $keys, $groups = 'default', $server_key = '', &$cas_tokens = null, $flags = null ) {
+		$values       = array();
 		$derived_keys = $this->buildKeys( $keys, $groups );
+
+		// Bail if no method exists
+		if ( ! method_exists( $this->daemon, 'getMulti' ) ) {
+			return false;
+		}
 
 		/**
 		 * If either $cas_tokens, or $flags is set, must hit Memcached and bypass runtime cache. Note that
@@ -858,13 +900,13 @@ class WP_Spider_Cache_Object_Base {
 		 * flags; however, if the groups of groups contains a no_mc_group, this is bypassed.
 		 */
 		if ( func_num_args() > 3 && ! $this->contains_no_mc_group( $groups ) ) {
-			if ( ! empty( $server_key ) ) {
-				$values = $this->daemon->getMultiByKey( $server_key, $derived_keys, $cas_tokens, $flags );
-			} else {
-				$values = $this->daemon->getMulti( $derived_keys, $cas_tokens, $flags );
+			if ( ! empty( $this->daemon ) ) {
+				$values = ! empty( $server_key )
+					? $this->daemon->getMultiByKey( $server_key, $derived_keys, $cas_tokens, $flags )
+					: $this->daemon->getMulti( $derived_keys, $cas_tokens, $flags );
 			}
+
 		} else {
-			$values      = array();
 			$need_to_get = array();
 
 			// Pull out values from runtime cache, or mark for retrieval
@@ -877,7 +919,7 @@ class WP_Spider_Cache_Object_Base {
 			}
 
 			// Get those keys not found in the runtime cache
-			if ( ! empty( $need_to_get ) ) {
+			if ( ! empty( $need_to_get ) && ! empty( $this->daemon ) ) {
 				$result = ! empty( $server_key )
 					? $this->daemon->getMultiByKey( $server_key, array_keys( $need_to_get ) )
 					: $this->daemon->getMulti( array_keys( $need_to_get ) );
@@ -922,9 +964,9 @@ class WP_Spider_Cache_Object_Base {
 	 * @param   string|array    $groups     If string, used for all keys. If arrays, corresponds with the $keys array.
 	 * @param   null|array      $cas_tokens The variable to store the CAS tokens for the found items.
 	 * @param   int             $flags      The flags for the get operation.
-	 * @return  bool|array                  Returns the array of found items or FALSE on failure.
+	 * @return  bool|array                  Returns the array of found items or false on failure.
 	 */
-	public function getMultiByKey( $server_key, $keys, $groups = 'default', &$cas_tokens = NULL, $flags = NULL ) {
+	public function getMultiByKey( $server_key, $keys, $groups = 'default', &$cas_tokens = null, $flags = null ) {
 		/**
 		 * Need to be careful how "getMulti" is called. If you send $cache_cb, and $cas_token, it will hit cache.
 		 * Only send those args if they were sent to this function.
@@ -942,10 +984,12 @@ class WP_Spider_Cache_Object_Base {
 	 * @link http://www.php.net/manual/en/memcached.getoption.php
 	 *
 	 * @param   int         $option     One of the Memcached::OPT_* constants.
-	 * @return  mixed                   Returns the value of the requested option, or FALSE on error.
+	 * @return  mixed                   Returns the value of the requested option, or false on error.
 	 */
 	public function getOption( $option ) {
-		return $this->daemon->getOption( $option );
+		return method_exists( $this->daemon, 'getOption' )
+			? $this->daemon->getOption( $option )
+			: false;
 	}
 
 	/**
@@ -956,7 +1000,9 @@ class WP_Spider_Cache_Object_Base {
 	 * @return  int     Result code of the last cache operation.
 	 */
 	public function getResultCode() {
-		return $this->daemon->getResultCode();
+		return method_exists( $this->daemon, 'getResultCode' )
+			? $this->daemon->getResultCode()
+			: 0;
 	}
 
 	/**
@@ -967,7 +1013,9 @@ class WP_Spider_Cache_Object_Base {
 	 * @return  string      Message describing the result of the last cache operation.
 	 */
 	public function getResultMessage() {
-		return $this->daemon->getResultMessage();
+		return method_exists( $this->daemon, 'getResultMessage' )
+			? $this->daemon->getResultMessage()
+			: '';
 	}
 
 	/**
@@ -976,10 +1024,12 @@ class WP_Spider_Cache_Object_Base {
 	 * @link    http://www.php.net/manual/en/memcached.getserverbykey.php
 	 *
 	 * @param   string      $server_key     The key identifying the server to store the value on.
-	 * @return  array                       Array with host, post, and weight on success, FALSE on failure.
+	 * @return  array                       Array with host, post, and weight on success, false on failure.
 	 */
 	public function getServerByKey( $server_key ) {
-		return $this->daemon->getServerByKey( $server_key );
+		return method_exists( $this->daemon, 'getServerByKey' )
+			? $this->daemon->getServerByKey( $server_key )
+			: false;
 	}
 
 	/**
@@ -990,7 +1040,9 @@ class WP_Spider_Cache_Object_Base {
 	 * @return  array       The list of all servers in the server pool.
 	 */
 	public function getServerList() {
-		return $this->daemon->getServerList();
+		return method_exists( $this->daemon, 'getServerList' )
+			? $this->daemon->getServerList()
+			: array();
 	}
 
 	/**
@@ -1001,7 +1053,9 @@ class WP_Spider_Cache_Object_Base {
 	 * @return  array       Array of server statistics, one entry per server.
 	 */
 	public function getStats() {
-		return $this->daemon->getStats();
+		return method_exists( $this->daemon, 'getStats' )
+			? $this->daemon->getStats()
+			: array();
 	}
 
 	/**
@@ -1012,7 +1066,9 @@ class WP_Spider_Cache_Object_Base {
 	 * @return  array       Array of server versions, one entry per server.
 	 */
 	public function getVersion() {
-		return $this->daemon->getVersion();
+		return method_exists( $this->daemon, 'getVersion' )
+			? $this->daemon->getVersion()
+			: array();
 	}
 
 	/**
@@ -1023,7 +1079,7 @@ class WP_Spider_Cache_Object_Base {
 	 * @param   string      $key        The key under which to store the value.
 	 * @param   int         $offset     The amount by which to increment the item's value.
 	 * @param   string      $group      The group value appended to the $key.
-	 * @return  int|bool                Returns item's new value on success or FALSE on failure.
+	 * @return  int|bool                Returns item's new value on success or false on failure.
 	 */
 	public function increment( $key, $offset = 1, $group = 'default' ) {
 		$derived_key = $this->buildKey( $key, $group );
@@ -1072,7 +1128,7 @@ class WP_Spider_Cache_Object_Base {
 	 * @param   string      $key        The key under which to store the value.
 	 * @param   int         $offset     The amount by which to increment the item's value.
 	 * @param   string      $group      The group value appended to the $key.
-	 * @return  int|bool                Returns item's new value on success or FALSE on failure.
+	 * @return  int|bool                Returns item's new value on success or false on failure.
 	 */
 	public function incr( $key, $offset = 1, $group = 'default' ) {
 		return $this->increment( $key, $offset, $group );
@@ -1096,11 +1152,14 @@ class WP_Spider_Cache_Object_Base {
 	 * @param   string    $group        The group value prepended to the $key.
 	 * @param   string    $server_key   The key identifying the server to store the value on.
 	 * @param   bool      $byKey        True to store in internal cache by key; false to not store by key
-	 * @return  bool                    Returns TRUE on success or FALSE on failure.
+	 * @return  bool                    Returns true on success or false on failure.
 	 */
 	public function prepend( $key, $value, $group = 'default', $server_key = '', $byKey = false ) {
+		$result = false;
+
+		// Bail if no value
 		if ( ! is_string( $value ) && ! is_int( $value ) && ! is_float( $value ) ) {
-			return false;
+			return $result;
 		}
 
 		$derived_key = $this->buildKey( $key, $group );
@@ -1108,19 +1167,20 @@ class WP_Spider_Cache_Object_Base {
 		// If group is a non-cache group, prepend to runtime cache value, not cache
 		if ( in_array( $group, $this->no_mc_groups, false ) ) {
 			if ( ! isset( $this->cache[ $derived_key ] ) ) {
-				return false;
+				return $result;
 			}
 
 			$combined = $this->combine_values( $this->cache[ $derived_key ], $value, 'pre' );
 			$this->add_to_internal_cache( $derived_key, $combined );
+
 			return true;
 		}
 
 		// Append to cache value
-		if ( false !== $byKey ) {
-			$result = $this->daemon->prependByKey( $server_key, $derived_key, $value );
-		} else {
-			$result = $this->daemon->prepend( $derived_key, $value );
+		if ( ! empty( $this->daemon ) ) {
+			$result = ( false !== $byKey )
+				? $this->daemon->prependByKey( $server_key, $derived_key, $value )
+				: $this->daemon->prepend( $derived_key, $value );
 		}
 
 		// Store in runtime cache if add was successful
@@ -1149,7 +1209,7 @@ class WP_Spider_Cache_Object_Base {
 	 * @param   string    $key          The key under which to store the value.
 	 * @param   string    $value        Must be string as prepending mixed values is not well-defined.
 	 * @param   string    $group        The group value prepended to the $key.
-	 * @return  bool                    Returns TRUE on success or FALSE on failure.
+	 * @return  bool                    Returns true on success or false on failure.
 	 */
 	public function prependByKey( $server_key, $key, $value, $group = 'default' ) {
 		return $this->prepend( $key, $value, $group, $server_key, true );
@@ -1164,7 +1224,7 @@ class WP_Spider_Cache_Object_Base {
 	 *
 	 * @return bool
 	 */
-	public function preserveOrder( $flags = NULL ) {
+	public function preserveOrder( $flags = null ) {
 		return ( $this->preserve_order === $flags );
 	}
 
@@ -1182,9 +1242,10 @@ class WP_Spider_Cache_Object_Base {
 	 * @param   int         $expiration     The expiration time, defaults to 0.
 	 * @param   string      $server_key     The key identifying the server to store the value on.
 	 * @param   bool        $byKey          True to store in internal cache by key; false to not store by key
-	 * @return  bool                        Returns TRUE on success or FALSE on failure.
+	 * @return  bool                        Returns true on success or false on failure.
 	 */
 	public function replace( $key, $value, $group = 'default', $expiration = 0, $server_key = '', $byKey = false ) {
+		$result      = false;
 		$derived_key = $this->buildKey( $key, $group );
 		$expiration  = $this->sanitize_expiration( $expiration );
 
@@ -1193,7 +1254,7 @@ class WP_Spider_Cache_Object_Base {
 
 			// Replace won't save unless the key already exists; mimic this behavior here
 			if ( ! isset( $this->cache[ $derived_key ] ) ) {
-				return false;
+				return $result;
 			}
 
 			$this->cache[ $derived_key ] = $value;
@@ -1201,10 +1262,10 @@ class WP_Spider_Cache_Object_Base {
 		}
 
 		// Save to cache
-		if ( false !== $byKey ) {
-			$result = $this->daemon->replaceByKey( $server_key, $derived_key, $value, $expiration );
-		} else {
-			$result = $this->daemon->replace( $derived_key, $value, $expiration );
+		if ( method_exists( $this->daemon, 'replace' ) ) {
+			$result = ( false !== $byKey )
+				? $this->daemon->replaceByKey( $server_key, $derived_key, $value, $expiration )
+				: $this->daemon->replace( $derived_key, $value, $expiration );
 		}
 
 		// Store in runtime cache if add was successful
@@ -1228,7 +1289,7 @@ class WP_Spider_Cache_Object_Base {
 	 * @param   mixed       $value          The value to store.
 	 * @param   string      $group          The group value appended to the $key.
 	 * @param   int         $expiration     The expiration time, defaults to 0.
-	 * @return  bool                        Returns TRUE on success or FALSE on failure.
+	 * @return  bool                        Returns true on success or false on failure.
 	 */
 	public function replaceByKey( $server_key, $key, $value, $group = 'default', $expiration = 0 ) {
 		return $this->replace( $key, $value, $group, $expiration, $server_key, true );
@@ -1247,9 +1308,10 @@ class WP_Spider_Cache_Object_Base {
 	 * @param   int         $expiration The expiration time, defaults to 0.
 	 * @param   string      $server_key The key identifying the server to store the value on.
 	 * @param   bool        $byKey      True to store in internal cache by key; false to not store by key
-	 * @return  bool                    Returns TRUE on success or FALSE on failure.
+	 * @return  bool                    Returns true on success or false on failure.
 	 */
 	public function set( $key, $value, $group = 'default', $expiration = 0, $server_key = '', $byKey = false ) {
+		$result      = false;
 		$derived_key = $this->buildKey( $key, $group );
 		$expiration  = $this->sanitize_expiration( $expiration );
 
@@ -1260,10 +1322,10 @@ class WP_Spider_Cache_Object_Base {
 		}
 
 		// Save to cache
-		if ( false !== $byKey ) {
-			$result = $this->daemon->setByKey( $server_key, $derived_key, $value, $expiration );
-		} else {
-			$result = $this->daemon->set( $derived_key, $value, $expiration );
+		if ( method_exists( $this->daemon, 'set' ) ) {
+			$result = ( false !== $byKey )
+				? $this->daemon->setByKey( $server_key, $derived_key, $value, $expiration )
+				: $this->daemon->set( $derived_key, $value, $expiration );
 		}
 
 		// Store in runtime cache if add was successful
@@ -1286,7 +1348,7 @@ class WP_Spider_Cache_Object_Base {
 	 * @param   mixed       $value          The value to store.
 	 * @param   string      $group          The group value appended to the $key.
 	 * @param   int         $expiration     The expiration time, defaults to 0.
-	 * @return  bool                        Returns TRUE on success or FALSE on failure.
+	 * @return  bool                        Returns true on success or false on failure.
 	 */
 	public function setByKey( $server_key, $key, $value, $group = 'default', $expiration = 0 ) {
 		return $this->set( $key, $value, $group, $expiration, $server_key, true );
@@ -1308,11 +1370,12 @@ class WP_Spider_Cache_Object_Base {
 	 * @param   int             $expiration     The expiration time, defaults to 0.
 	 * @param   string          $server_key     The key identifying the server to store the value on.
 	 * @param   bool            $byKey          True to store in internal cache by key; false to not store by key
-	 * @return  bool                            Returns TRUE on success or FALSE on failure.
+	 * @return  bool                            Returns true on success or false on failure.
 	 */
 	public function setMulti( $items, $groups = 'default', $expiration = 0, $server_key = '', $byKey = false ) {
 
 		// Build final keys and replace $items keys with the new keys
+		$result        = false;
 		$derived_keys  = $this->buildKeys( array_keys( $items ), $groups );
 		$expiration    = $this->sanitize_expiration( $expiration );
 		$derived_items = array_combine( $derived_keys, $items );
@@ -1332,9 +1395,11 @@ class WP_Spider_Cache_Object_Base {
 		}
 
 		// Save to cache
-		$result = ( false !== $byKey )
-			? $this->daemon->setMultiByKey( $server_key, $derived_items, $expiration )
-			: $this->daemon->setMulti( $derived_items, $expiration );
+		if ( method_exists( $this->daemon, 'setMulti' ) ) {
+			$result = ( false !== $byKey )
+				? $this->daemon->setMultiByKey( $server_key, $derived_items, $expiration )
+				: $this->daemon->setMulti( $derived_items, $expiration );
+		}
 
 		// Store in runtime cache if add was successful
 		if ( $this->success() ) {
@@ -1359,7 +1424,7 @@ class WP_Spider_Cache_Object_Base {
 	 * @param   array           $items          An array of key/value pairs to store on the server.
 	 * @param   string|array    $groups         Group(s) to merge with key(s) in $items.
 	 * @param   int             $expiration     The expiration time, defaults to 0.
-	 * @return  bool                            Returns TRUE on success or FALSE on failure.
+	 * @return  bool                            Returns true on success or false on failure.
 	 */
 	public function setMultiByKey( $server_key, $items, $groups = 'default', $expiration = 0 ) {
 		return $this->setMulti( $items, $groups, $expiration, $server_key, true );
@@ -1372,10 +1437,12 @@ class WP_Spider_Cache_Object_Base {
 	 *
 	 * @param   int         $option     Option name.
 	 * @param   mixed       $value      Option value.
-	 * @return  bool                Returns TRUE on success or FALSE on failure.
+	 * @return  bool                    Returns true on success or false on failure.
 	 */
 	public function setOption( $option, $value ) {
-		return $this->daemon->setOption( $option, $value );
+		return method_exists( $this->daemon, 'setOption' )
+			? $this->daemon->setOption( $option, $value )
+			: false;
 	}
 
 	/**
