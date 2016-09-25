@@ -47,6 +47,13 @@ class WP_Spider_Cache_Object extends WP_Spider_Cache_Object_Base {
 	public $servers_global = 'memcached_servers';
 
 	/**
+	 * Holds the fallback servers.
+	 *
+	 * @var array
+	 */
+	public $servers_fallback = array( array( '127.0.0.1', 11211, 20 ) );
+
+	/**
 	 * Instantiate the class.
 	 *
 	 * Instantiates the class and returns adds the servers specified
