@@ -672,11 +672,9 @@ HTML;
 			return;
 		}
 
-		global $wp_filter;
-
 		// Headers and such
-		$wp_filter['status_header'][10]['spider_cache']      = array( 'function' => array( $this, 'status_header'   ), 'accepted_args' => 2 );
-		$wp_filter['wp_redirect_status'][10]['spider_cache'] = array( 'function' => array( $this, 'redirect_status' ), 'accepted_args' => 2 );
+		add_filter( 'status_header',      array( $this, 'status_header'   ), 10, 2 );
+		add_filter( 'wp_redirect_status', array( $this, 'redirect_status' ), 10, 2 );
 
 		// Start the spidey-sense listening
 		ob_start( array( $this, 'ob' ) );
