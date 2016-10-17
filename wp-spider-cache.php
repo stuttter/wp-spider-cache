@@ -38,7 +38,7 @@ class WP_Spider_Cache_UI {
 	 *
 	 * @var string
 	 */
-	private $asset_version = '201609080001';
+	private $asset_version = '201610080002';
 
 	/**
 	 * The resulting page's hook_suffix.
@@ -284,12 +284,13 @@ class WP_Spider_Cache_UI {
 		$cleared = array();
 
 		// Delete user caches
-		$cleared[] = wp_cache_delete( $_user->ID,            'users'      );
-		$cleared[] = wp_cache_delete( $_user->ID,            'usermeta'   );
-		$cleared[] = wp_cache_delete( $_user->ID,            'user_meta'  );
-		$cleared[] = wp_cache_delete( $_user->user_login,    'userlogins' );
-		$cleared[] = wp_cache_delete( $_user->user_nicename, 'userslugs'  );
-		$cleared[] = wp_cache_delete( $_user->user_email,    'useremail'  );
+		$cleared[] = wp_cache_delete( $_user->ID,            'users'        );
+		$cleared[] = wp_cache_delete( $_user->ID,            'usermeta'     );
+		$cleared[] = wp_cache_delete( $_user->ID,            'user_meta'    );
+		$cleared[] = wp_cache_delete( $_user->user_login,    'userlogins'   );
+		$cleared[] = wp_cache_delete( $_user->user_nicename, 'userslugs'    );
+		$cleared[] = wp_cache_delete( $_user->user_email,    'useremail'    );
+		$cleared[] = wp_cache_delete( $_user->user_email,    'user_signups' );
 
 		// Bail if not redirecting
 		if ( false === $redirect ) {
@@ -355,13 +356,16 @@ class WP_Spider_Cache_UI {
 		$this->check_nonce( self::INSTANCE_NONCE );
 
 		// Attempt to output the server contents
-		if ( ! empty( $_POST['name'] ) ) {
-			$server = filter_var( $_POST['name'], FILTER_VALIDATE_IP );
-			$this->set_blog_ids();
-			$this->do_rows( $server );
+		if ( empty( $_POST['name'] ) ) {
+			wp_die( -1 );
 		}
 
-		exit();
+		// Get memcache data
+		$server = filter_var( $_POST['name'], FILTER_VALIDATE_IP );
+		$this->set_blog_ids();
+		$this->do_rows( $server );
+
+		wp_die();
 	}
 
 	/**
@@ -372,17 +376,40 @@ class WP_Spider_Cache_UI {
 	public function ajax_flush_group() {
 		$this->check_nonce( self::FLUSH_NONCE );
 
-		// Loop through keys and attempt to delete them
-		if ( ! empty( $_POST['keys'] ) && ! empty( $_GET['group'] ) ) {
-			foreach ( $_POST['keys'] as $key ) {
-				wp_cache_delete(
-					$this->sanitize_key( $key           ),
-					$this->sanitize_key( $_GET['group'] )
-				);
-			}
+		// Bail if missing keys or group
+		if ( empty( $_POST['keys'] ) || empty( $_GET['group'] ) ) {
+			wp_die( $_POST );
 		}
 
-		exit();
+		// Decode group
+		$g_code = base64_decode( $_GET['group'] );
+		$keys   = array();
+
+		// Loop through ajax posted keys and attempt to delete them
+		foreach ( $_POST['keys'] as $key ) {
+
+			// Decode key
+			$k_code = base64_decode( $key );
+
+			// Deleted
+			$deleted = wp_cache_delete(
+				$this->sanitize_key( $k_code ),
+				$this->sanitize_key( $g_code )
+			);
+
+			$keys[] = array(
+				'group'  => $g_code,
+				'id'     => $k_code,
+				'code'   => $key,
+				'result' => $deleted
+			);
+		}
+
+		// Pass keys
+		wp_die( json_encode( array(
+			'success' => ! empty( $keys ),
+			'element' => $this->sanitize_key( $_GET['group'] )
+		) ) );
 	}
 
 	/**
@@ -394,20 +421,25 @@ class WP_Spider_Cache_UI {
 		$this->check_nonce( self::REMOVE_NONCE );
 
 		// Delete a key in a group
-		if ( ! empty( $_GET['key'] ) && ! empty( $_GET['group'] ) ) {
-
-			// Decode
-			$k_code = base64_decode( $_GET['key']   );
-			$g_code = base64_decode( $_GET['group'] );
-
-			// Delete cache
-			wp_cache_delete(
-				$this->sanitize_key( $k_code ),
-				$this->sanitize_key( $g_code )
-			);
+		if ( empty( $_GET['key'] ) || empty( $_GET['group'] ) ) {
+			wp_die( -1 );
 		}
 
-		exit();
+		// Decode
+		$k_code = base64_decode( $_GET['key']   );
+		$g_code = base64_decode( $_GET['group'] );
+
+		// Delete cache
+		$deleted = wp_cache_delete(
+			$this->sanitize_key( $k_code ),
+			$this->sanitize_key( $g_code )
+		);
+
+		// Pass keys
+		wp_die( json_encode( array(
+			'success' => $deleted,
+			'element' => $this->sanitize_key( $_GET['key'] )
+		) ) );
 	}
 
 	/**
@@ -419,20 +451,21 @@ class WP_Spider_Cache_UI {
 		$this->check_nonce( self::GET_NONCE );
 
 		// Bail if invalid posted data
-		if ( ! empty( $_GET['key'] ) && ! empty( $_GET['group'] ) ) {
-
-			// Decode
-			$k_code = base64_decode( $_GET['key']   );
-			$g_code = base64_decode( $_GET['group'] );
-
-			// Get the item
-			$this->do_item(
-				$this->sanitize_key( $k_code ),
-				$this->sanitize_key( $g_code )
-			);
+		if ( empty( $_GET['key'] ) || empty( $_GET['group'] ) ) {
+			wp_die( -1 );
 		}
 
-		exit();
+		// Decode
+		$k_code = base64_decode( $_GET['key']   );
+		$g_code = base64_decode( $_GET['group'] );
+
+		// Get the item
+		$this->do_item(
+			$this->sanitize_key( $k_code ),
+			$this->sanitize_key( $g_code )
+		);
+
+		wp_die();
 	}
 
 	/**
@@ -457,7 +490,7 @@ class WP_Spider_Cache_UI {
 			// Loop through items
 			foreach ( $list as $item ) {
 				if ( strstr( $item, "{$group}:" ) ) {
-					wp_cache_delete( $item );
+					wp_cache_delete( $item, $group );
 					$cleared++;
 				}
 			}
@@ -676,11 +709,14 @@ class WP_Spider_Cache_UI {
 	 */
 	private function get_flush_group_link( $blog_id, $group, $nonce ) {
 
+		// Encode group key
+		$g_key = base64_encode( $group );
+
 		// Setup the URL
 		$url = add_query_arg( array(
 			'action'  => 'sc-flush-group',
 			'blog_id' => (int) $blog_id,
-			'group'   => $this->sanitize_key( $group ),
+			'group'   => $this->sanitize_key( $g_key ),
 			'nonce'   => $nonce
 		), admin_url( 'admin-ajax.php' ) );
 
@@ -821,23 +857,18 @@ class WP_Spider_Cache_UI {
 				'group'   => $this->sanitize_key( $g_code ),
 				'key'     => $this->sanitize_key( $k_code ),
 				'action'  => 'sc-get-item',
-				'nonce'   => wp_create_nonce( self::GET_NONCE    ),
+				'nonce'   => wp_create_nonce( self::GET_NONCE ),
 			), $admin_url );
-
-			// Maybe include the blog ID in the group
-			$include_blog_id = ! empty( $blog_id )
-				? "{$blog_id}:{$group}"
-				: $group;
 
 			// Remove URL
 			$remove_url = add_query_arg( array(
-				'group'   => $this->sanitize_key( $include_blog_id ),
-				'key'     => $this->sanitize_key( $k_code        ),
+				'group'   => $this->sanitize_key( $g_code ),
+				'key'     => $this->sanitize_key( $k_code ),
 				'action'  => 'sc-remove-item',
 				'nonce'   => wp_create_nonce( self::REMOVE_NONCE )
 			), $admin_url ); ?>
 
-			<div class="item" data-key="<?php echo esc_attr( $key ); ?>">
+			<div class="item" data-key="<?php echo esc_attr( $k_code ); ?>">
 				<code><?php echo implode( '</code> : <code>', explode( ':', $key ) ); ?></code>
 				<div class="row-actions">
 					<span class="trash">
@@ -1026,7 +1057,7 @@ class WP_Spider_Cache_UI {
 	private function do_row( $values = array(), $nonce = '' ) {
 		?>
 
-		<tr>
+		<tr data-group="<?php echo esc_attr( base64_encode( $values['group'] ) ); ?>">
 			<th scope="row" class="check-column">
 				<input type="checkbox" name="checked[]" value="<?php echo esc_attr( $values['group'] ); ?>" id="checkbox_<?php echo esc_attr( $values['group'] ); ?>">
 				<label class="screen-reader-text" for="checkbox_<?php echo esc_attr( $values['group'] ); ?>"><?php esc_html_e( 'Select', 'wp-spider-cache' ); ?></label>

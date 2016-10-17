@@ -13,26 +13,36 @@
 		$searchResults,
 		$modalWindow;
 
-	function remove_group( el ) {
-		return function () {
-			var row = $( el ).closest( 'tr' );
+	function maybe_remove_group( e ) {
+		$instanceStore.children( 'tr' ).removeClass( 'row-updating' );
 
-			row.fadeOut( 500, function() {
-				$instanceStore.children( 'tr' ).removeClass( 'row-updating' );
-				row.remove();
-			} );
-		};
+		var result = $.parseJSON( e );
+
+		if ( false === e.success ) {
+			return;
+		}
+
+		var row = $( "tr[data-group='" + result.element + "']" );
+
+		row.fadeOut( 500, function() {
+			row.remove();
+		} );
 	}
 
-	function remove_item( el ) {
-		return function () {
-			var key = $( el ).closest( 'div.item' );
+	function maybe_remove_item( e ) {
+		$instanceStore.children( 'tr' ).removeClass( 'row-updating' );
 
-			key.fadeOut( 500, function() {
-				$instanceStore.children( 'tr' ).removeClass( 'row-updating' );
-				key.remove();
-			} );
-		};
+		var result = $.parseJSON( e );
+
+		if ( false === e.success ) {
+			return;
+		}
+
+		var key = $( "div[data-key='" + result.element + "']" );
+
+		key.fadeOut( 500, function() {
+			key.remove();
+		} );
 	}
 
 	function handleChange( e ) {
@@ -120,7 +130,9 @@
 					data : {
 						keys : keys
 					},
-					success : remove_group( elem[0] )
+					success : function ( e ) {
+						maybe_remove_group( e );
+					}
 				} );
 
 				return false;
@@ -133,7 +145,9 @@
 				$.ajax( {
 					type    : 'post',
 					url     : e.currentTarget.href,
-					success : remove_item( elem[0] )
+					success : function ( e ) {
+						maybe_remove_item( e );
+					}
 				} );
 				return false;
 			} )
