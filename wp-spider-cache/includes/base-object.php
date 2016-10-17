@@ -96,7 +96,33 @@ class WP_Spider_Cache_Object_Base {
 	 *
 	 * @var array
 	 */
-	public $global_groups = array( 'users', 'userlogins', 'usermeta', 'user_meta', 'useremail', 'userslugs', 'site-transient', 'site-options', 'site-lookup', 'blog-lookup', 'blog-details', 'rss', 'global-posts', 'blog-id-cache', 'networks', 'sites', 'site-details' );
+	public $global_groups = array(
+
+		// Users
+		'users',
+		'userlogins',
+		'usermeta',
+		'user_meta',
+		'useremail',
+		'userslugs',
+
+		// Networks & Sites
+		'site-transient',
+		'site-options',
+		'site-lookup',
+		'blog-lookup',
+		'blog-details',
+		'blog-id-cache',
+
+		// Posts
+		'rss',
+		'global-posts',
+
+		// New networks & Sites
+		'networks',
+		'sites',
+		'site-details'
+	);
 
 	/**
 	 * List of additionally supported, non-core, known, persistent, global
@@ -106,8 +132,8 @@ class WP_Spider_Cache_Object_Base {
 	 */
 	public $global_groups_extended = array(
 
-		// Internal
-		'spider_cache',
+		// Users
+		'user_signups',
 
 		// Blog Aliases
 		'blog-aliases',
@@ -640,6 +666,11 @@ class WP_Spider_Cache_Object_Base {
 	public function delete( $key, $group = 'default', $time = 0, $server_key = '', $byKey = false ) {
 		$result      = false;
 		$derived_key = $this->buildKey( $key, $group );
+
+		// Check for full cache key
+		if ( substr( $key, -strlen( $derived_key ) ) === $key ) {
+			$derived_key = $key;
+		}
 
 		// Remove from no_mc_groups array
 		if ( in_array( $group, $this->no_mc_groups, false ) ) {
