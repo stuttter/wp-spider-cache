@@ -149,7 +149,6 @@
 						$modalWindow = $( '#TB_ajaxContent' );
 						$showItem.html( data ).detach().appendTo( $modalWindow );
 						elem.parents( 'tr' ).removeClass( 'row-updating' );
-						window.location.hash = 'sc-wrapper';							
 					}
 				} );
 				return false;
