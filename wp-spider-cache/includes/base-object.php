@@ -668,7 +668,7 @@ class WP_Spider_Cache_Object_Base {
 		$derived_key = $this->buildKey( $key, $group );
 
 		// Check for full cache key
-		if ( substr( $key, -strlen( $derived_key ) ) === $key ) {
+		if ( false !== strpos( $key, ':' ) ) {
 			$derived_key = $key;
 		}
 
