@@ -1517,7 +1517,7 @@ class WP_Spider_Cache_Object_Base {
 		if ( function_exists( 'is_multisite' ) && is_multisite() ) {
 
 			// Check for BuddyPress groups
-			if ( ! strstr( $key, 'network:' ) && ( ( 'bp' === $group ) || ( 'bp_' === substr( $group, 0, 3 ) ) || in_array( $group, array( 'activity_meta', 'blog_meta', 'group_meta', 'message_meta', 'notification_meta', 'xprofile_meta' ) ) ) ) {
+			if ( ! strstr( $key, 'network:' ) && ( ( 'bp' === $group ) || ( 'bp_' === substr( $group, 0, 3 ) ) || in_array( $group, array( 'activity_meta', 'blog_meta', 'group_meta', 'message_meta', 'notification_meta', 'xprofile_meta', 'xprofile_group_meta', 'xprofile_field_meta', 'xprofile_data_meta' ) ) ) ) {
 				$key = 'network:' . get_current_site()->id . ':' . $key;
 			}
 		}
