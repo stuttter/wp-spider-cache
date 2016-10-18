@@ -13,43 +13,62 @@
 		$searchResults,
 		$modalWindow;
 
-	function maybe_remove_group( e ) {
-		$instanceStore.children( 'tr' ).removeClass( 'row-updating' );
+	/**
+	 *
+	 * @param {data} e
+	 * @param {element} elem
+	 * @returns {void}
+	 */
+	function maybe_remove_group( e, elem ) {
+		var result = $.parseJSON( e ),
+			row    = elem.parents( 'tr' ),
+			key    = row;
 
-		var result = $.parseJSON( e );
+		setTimeout( function() {
+			if ( result.success ) {
+				key.fadeOut( 500, function() {
+					key.remove();
+				} );
+			}
 
-		if ( false === e.success ) {
-			return;
-		}
-
-		var row = $( "tr[data-group='" + result.element + "']" );
-
-		row.fadeOut( 500, function() {
-			row.remove();
-		} );
+			row.removeClass( 'row-updating' );
+		}, 500 );
 	}
 
-	function maybe_remove_item( e ) {
-		$instanceStore.children( 'tr' ).removeClass( 'row-updating' );
+	/**
+	 * Maybe remove a cache key item from the list-table
+	 *
+	 * @param {data} e
+	 * @param {element} elem
+	 * @returns {void}
+	 */
+	function maybe_remove_item( e, elem ) {
+		var result = $.parseJSON( e ),
+			row    = elem.parents( 'tr' ),
+			col    = elem.parents( 'td' );
 
-		var result = $.parseJSON( e );
-
-		if ( false === e.success ) {
-			return;
+		if ( 1 === col.children( 'div.item' ).length ) {
+			var key = row;
+		} else {
+			var key = elem.parents( 'div.item' );
 		}
 
-		var key = $( "div[data-key='" + result.element + "']" );
+		setTimeout( function() {
+			if ( result.success ) {
+				key.fadeOut( 500, function() {
+					key.remove();
+				} );
+			}
 
-		key.fadeOut( 500, function() {
-			key.remove();
-		} );
+			row.removeClass( 'row-updating' );
+		}, 500 );
 	}
 
 	function handleChange( e ) {
-		var $el  = $( e.currentTarget ),
-			$val = $.trim( $el.val() );
+		var el  = $( e.currentTarget ),
+			val = $.trim( el.val() );
 
-		if ( $val ) {
+		if ( val ) {
 			$refreshInstance.prop( 'disabled', true );
 			$instanceStore.html( WP_Spider_Cache.refreshing_results );
 			$.ajax( {
@@ -57,8 +76,8 @@
 				url  : ajaxurl,
 				data : {
 					action : 'sc-get-instance',
-					nonce  : $el.data( 'nonce' ),
-					name   : $val,
+					nonce  : el.data( 'nonce' ),
+					name   : val,
 					type   : $adminType.val()
 				},
 				cache   : false,
@@ -116,7 +135,7 @@
 		$( document.body )
 			.on( 'click', '.sc-flush-group', function ( e ) {
 				var elem = $( e.currentTarget ),
-					keys = [ ];
+					keys = [];
 
 				elem.parents( 'td' ).next().find( 'div.item' ).each( function () {
 					keys.push( $( this ).data( 'key' ) );
@@ -131,7 +150,7 @@
 						keys : keys
 					},
 					success : function ( e ) {
-						maybe_remove_group( e );
+						maybe_remove_group( e, elem );
 					}
 				} );
 
@@ -146,7 +165,7 @@
 					type    : 'post',
 					url     : e.currentTarget.href,
 					success : function ( e ) {
-						maybe_remove_item( e );
+						maybe_remove_item( e, elem );
 					}
 				} );
 				return false;

@@ -38,7 +38,7 @@ class WP_Spider_Cache_UI {
 	 *
 	 * @var string
 	 */
-	private $asset_version = '201610080002';
+	private $asset_version = '201610080003';
 
 	/**
 	 * The resulting page's hook_suffix.
@@ -408,7 +408,7 @@ class WP_Spider_Cache_UI {
 		// Pass keys
 		wp_die( json_encode( array(
 			'success' => ! empty( $keys ),
-			'element' => $this->sanitize_key( $_GET['group'] )
+			'keys'    => $keys
 		) ) );
 	}
 
@@ -438,7 +438,8 @@ class WP_Spider_Cache_UI {
 		// Pass keys
 		wp_die( json_encode( array(
 			'success' => $deleted,
-			'element' => $this->sanitize_key( $_GET['key'] )
+			'key'     => $k_code,
+			'group'   => $g_code
 		) ) );
 	}
 
@@ -1057,7 +1058,7 @@ class WP_Spider_Cache_UI {
 	private function do_row( $values = array(), $nonce = '' ) {
 		?>
 
-		<tr data-group="<?php echo esc_attr( base64_encode( $values['group'] ) ); ?>">
+		<tr>
 			<th scope="row" class="check-column">
 				<input type="checkbox" name="checked[]" value="<?php echo esc_attr( $values['group'] ); ?>" id="checkbox_<?php echo esc_attr( $values['group'] ); ?>">
 				<label class="screen-reader-text" for="checkbox_<?php echo esc_attr( $values['group'] ); ?>"><?php esc_html_e( 'Select', 'wp-spider-cache' ); ?></label>

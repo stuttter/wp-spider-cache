@@ -667,11 +667,6 @@ class WP_Spider_Cache_Object_Base {
 		$result      = false;
 		$derived_key = $this->buildKey( $key, $group );
 
-		// Check for full cache key
-		if ( false !== strpos( $key, ':' ) ) {
-			$derived_key = $key;
-		}
-
 		// Remove from no_mc_groups array
 		if ( in_array( $group, $this->no_mc_groups, false ) ) {
 			if ( isset( $this->cache[ $derived_key ] ) ) {
