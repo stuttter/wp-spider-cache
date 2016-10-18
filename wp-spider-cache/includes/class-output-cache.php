@@ -271,15 +271,8 @@ class WP_Spider_Cache_Output {
 	protected function configure_groups() {
 
 		// Local cache instance only
-		if ( false === $this->remote ) {
-			if ( function_exists( 'wp_cache_add_no_remote_groups' ) ) {
-				wp_cache_add_no_remote_groups( array( $this->group ) );
-			}
-		}
-
-		// Add global cache group
-		if ( function_exists( 'wp_cache_add_global_groups' ) ) {
-			wp_cache_add_global_groups( array( $this->group ) );
+		if ( ( false === $this->remote ) && function_exists( 'wp_cache_add_no_remote_groups' ) ) {
+			wp_cache_add_no_remote_groups( array( $this->group ) );
 		}
 	}
 
