@@ -3,7 +3,7 @@ Contributors: johnjamesjacoby, stuttter
 Tags: cache, object, output, admin, memcache, memcached
 Requires at least: 4.7
 Tested up to: 4.7
-Stable tag: 3.3.0
+Stable tag: 3.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=9Q4F4EL5YJ62J
@@ -92,6 +92,10 @@ If you require immediate assistance, please consider a paid support subscription
 http://github.com/stuttter/wp-spider-cache
 
 == Changelog ==
+
+= [3.4.0] - 2016-10-18 =
+* Fix key & group deletion from UI
+* Move BuddyPress cache-groups to root site of network
 
 = [3.3.0] - 2016-10-07 =
 * Prevent fatal errors on WordPress 4.7
