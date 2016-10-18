@@ -7,7 +7,7 @@
  * License:     GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Description: Your friendly neighborhood caching solution for WordPress
- * Version:     3.3.0
+ * Version:     3.4.0
  * Text Domain: wp-spider-cache
  * Domain Path: /assets/lang/
  */
@@ -38,7 +38,7 @@ class WP_Spider_Cache_UI {
 	 *
 	 * @var string
 	 */
-	private $asset_version = '201610080003';
+	private $asset_version = '201610180001';
 
 	/**
 	 * The resulting page's hook_suffix.
@@ -140,6 +140,9 @@ class WP_Spider_Cache_UI {
 
 		// Posts
 		add_action( 'clean_post_cache', array( $this, 'clean_post' ) );
+
+		// Loaded
+		do_action( 'wp_spider_cache_loaded', $this );
 	}
 
 	/**
