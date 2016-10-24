@@ -132,6 +132,9 @@ class WP_Spider_Cache_Object_Base {
 	 */
 	public $global_groups_extended = array(
 
+		// System
+		'ludicrousdb',
+
 		// Users
 		'user_signups',
 
