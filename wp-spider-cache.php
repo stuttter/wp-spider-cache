@@ -978,10 +978,9 @@ class WP_Spider_Cache_UI {
 							<label class="screen-reader-text" for="cb-select-all-1"><?php esc_html_e( 'Select All', 'wp-spider-cache' ); ?></label>
 							<input id="cb-select-all-1" type="checkbox">
 						</td>
-						<th class="blog-id"><?php esc_html_e( 'Blog ID', 'wp-spider-cache' ); ?></th>
-						<th class="cache-group"><?php esc_html_e( 'Cache Group', 'wp-spider-cache' ); ?></th>
-						<th class="keys"><?php esc_html_e( 'Keys', 'wp-spider-cache' ); ?></th>
-						<th class="count"><?php esc_html_e( 'Count', 'wp-spider-cache' ); ?></th>
+						<th scope="col" class="manage-column cache-group column-primary"><?php esc_html_e( 'Cache Group', 'wp-spider-cache' ); ?></th>
+						<th scope="col" class="manage-column keys"><?php esc_html_e( 'Keys', 'wp-spider-cache' ); ?></th>
+						<th scope="col" class="manage-column count"><?php esc_html_e( 'Count', 'wp-spider-cache' ); ?></th>
 					</tr>
 				</thead>
 
@@ -995,10 +994,9 @@ class WP_Spider_Cache_UI {
 							<label class="screen-reader-text" for="cb-select-all-2"><?php esc_html_e( 'Select All', 'wp-spider-cache' ); ?></label>
 							<input id="cb-select-all-2" type="checkbox">
 						</td>
-						<th class="blog-id"><?php esc_html_e( 'Blog ID', 'wp-spider-cache' ); ?></th>
-						<th class="cache-group"><?php esc_html_e( 'Cache Group', 'wp-spider-cache' ); ?></th>
-						<th class="keys"><?php esc_html_e( 'Keys', 'wp-spider-cache' ); ?></th>
-						<th class="count"><?php esc_html_e( 'Count', 'wp-spider-cache' ); ?></th>
+						<th scope="col" class="manage-column cache-group column-primary"><?php esc_html_e( 'Cache Group', 'wp-spider-cache' ); ?></th>
+						<th scope="col" class="manage-column keys"><?php esc_html_e( 'Keys', 'wp-spider-cache' ); ?></th>
+						<th scope="col" class="manage-column count"><?php esc_html_e( 'Count', 'wp-spider-cache' ); ?></th>
 					</tr>
 				</tfoot>
 			</table>
@@ -1066,14 +1064,12 @@ class WP_Spider_Cache_UI {
 				<input type="checkbox" name="checked[]" value="<?php echo esc_attr( $values['group'] ); ?>" id="checkbox_<?php echo esc_attr( $values['group'] ); ?>">
 				<label class="screen-reader-text" for="checkbox_<?php echo esc_attr( $values['group'] ); ?>"><?php esc_html_e( 'Select', 'wp-spider-cache' ); ?></label>
 			</th>
-			<td>
-				<code><?php echo esc_html( $values['blog_id'] ); ?></code>
-			</td>
-			<td>
+			<td class="group column-group has-row-actions column-primary" colname="<?php esc_html_e( 'Cache Group', 'wp-spider-cache' ); ?>">
 				<span class="row-title"><?php echo esc_html( $values['group'] ); ?></span>
 				<div class="row-actions"><span class="trash"><?php echo $this->get_flush_group_link( $values['blog_id'], $values['group'], $nonce ); ?></span></div>
+				<button type="button" class="toggle-row"><span class="screen-reader-text"><?php esc_html_e( 'Show more details', 'wp-spider-cache' ); ?></span></button>
 			</td>
-			<td>
+			<td class="keys column-keys">
 				<?php echo $this->get_cache_key_links( $values['blog_id'], $values['group'], $values['keys'] ); ?>
 			</td>
 			<td>
@@ -1097,7 +1093,7 @@ class WP_Spider_Cache_UI {
 		ob_start(); ?>
 
 		<tr class="sc-no-results">
-			<td colspan="5">
+			<td colspan="4" class="column-primary">
 				<?php esc_html_e( 'No results found.', 'wp-spider-cache' ); ?>
 			</td>
 		</tr>
@@ -1121,7 +1117,7 @@ class WP_Spider_Cache_UI {
 		ob_start(); ?>
 
 		<tr class="sc-refreshing-results">
-			<td colspan="5">
+			<td colspan="4" class="column-primary">
 				<?php esc_html_e( 'Refreshing...', 'wp-spider-cache' ); ?>
 			</td>
 		</tr>
