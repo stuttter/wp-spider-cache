@@ -6,8 +6,6 @@
 	var $instanceStore,
 		$refreshInstance,
 		$instanceSelector,
-		$noResults,
-		$refreshResults,
 		$adminType,
 		$showItem,
 		$searchResults,
@@ -115,8 +113,6 @@
 		$instanceStore    = $( '.sc-contents' );
 		$refreshInstance  = $( '.sc-refresh-instance' );
 		$instanceSelector = $( '.sc-server-selector' );
-		$noResults        = $( '.sc-no-results' );
-		$refreshResults   = $( '.sc-refresh-results' );
 		$adminType        = $( '#sc-admin-type' );
 		$showItem         = $( '#sc-show-item' );
 		$searchResults    = $( '#sc-search-input' );

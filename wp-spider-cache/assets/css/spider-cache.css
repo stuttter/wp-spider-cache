@@ -1,14 +1,32 @@
-.spider-cache table th.blog-id,
-.spider-cache table th.count {
-	width: 10%;
+@media screen and ( min-width: 782px ) {
+	.spider-cache table th.blog-id,
+	.spider-cache table th.count {
+		width: 10%;
+	}
+
+	.spider-cache table th.cache-group {
+		width: 12%;
+	}
+
+	.spider-cache table th.keys {
+		width: 60%;
+	}
 }
 
-.spider-cache table th.cache-group {
-	width: 12%;
-}
+@media screen and ( max-width: 782px ) {
+	div#TB_window.thickbox-loading {
+		width: 100% !important;
+		height: 100% !important;
+		margin-left: 0 !important;
+		margin-top: 0 !important;
+		top: 0 !important;
+		left: 0 !important;
+	}
 
-.spider-cache table th.keys {
-	width: 60%;
+	div.spider-cache table.wp-list-table tr.sc-no-results td.column-no-results,
+	div.spider-cache table.wp-list-table tr.sc-refresh-results td.column-refreshing {
+		display: table-cell;
+	}
 }
 
 .spider-cache .tablenav .alignright form {

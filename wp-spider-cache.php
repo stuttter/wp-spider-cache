@@ -7,7 +7,7 @@
  * License:     GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Description: Your friendly neighborhood caching solution for WordPress
- * Version:     4.0.0
+ * Version:     4.1.0
  * Text Domain: wp-spider-cache
  * Domain Path: /assets/lang/
  */
@@ -38,7 +38,7 @@ class WP_Spider_Cache_UI {
 	 *
 	 * @var string
 	 */
-	private $asset_version = '201610240001';
+	private $asset_version = '201610270001';
 
 	/**
 	 * The resulting page's hook_suffix.
@@ -930,6 +930,10 @@ class WP_Spider_Cache_UI {
 			<?php do_action( 'spider_cache_notice' ); ?>
 
 			<div class="wp-filter">
+				<div class="sc-toolbar-primary search-form">
+					<label for="sc-search-input" class="screen-reader-text"><?php esc_html_e( 'Search Cache', 'wp-spider-cache' ); ?></label>
+					<input type="search" placeholder="<?php esc_html_e( 'Search', 'wp-spider-cache' ); ?>" id="sc-search-input" class="search">
+				</div>
 				<div class="sc-toolbar-secondary">
 					<select class="sc-server-selector" data-nonce="<?php echo wp_create_nonce( self::INSTANCE_NONCE ); ?>">
 						<option value=""><?php esc_html_e( 'Select a Server', 'wp-spider-cache' ); ?></option><?php
@@ -944,10 +948,6 @@ class WP_Spider_Cache_UI {
 					?></select>
 					<button class="button action sc-refresh-instance" disabled><?php esc_html_e( 'Refresh', 'wp-spider-cache' ); ?></button>
 					<input type="hidden" name="sc-admin-type" id="sc-admin-type" value="<?php echo esc_attr( $this->get_admin_type() ); ?>">
-				</div>
-				<div class="sc-toolbar-primary search-form">
-					<label for="sc-search-input" class="screen-reader-text"><?php esc_html_e( 'Search Cache', 'wp-spider-cache' ); ?></label>
-					<input type="search" placeholder="<?php esc_html_e( 'Search', 'wp-spider-cache' ); ?>" id="sc-search-input" class="search">
 				</div>
 			</div>
 
@@ -1064,15 +1064,15 @@ class WP_Spider_Cache_UI {
 				<input type="checkbox" name="checked[]" value="<?php echo esc_attr( $values['group'] ); ?>" id="checkbox_<?php echo esc_attr( $values['group'] ); ?>">
 				<label class="screen-reader-text" for="checkbox_<?php echo esc_attr( $values['group'] ); ?>"><?php esc_html_e( 'Select', 'wp-spider-cache' ); ?></label>
 			</th>
-			<td class="group column-group has-row-actions column-primary" colname="<?php esc_html_e( 'Cache Group', 'wp-spider-cache' ); ?>">
+			<td class="group column-group has-row-actions column-primary" data-colname="<?php esc_html_e( 'Cache Group', 'wp-spider-cache' ); ?>">
 				<span class="row-title"><?php echo esc_html( $values['group'] ); ?></span>
 				<div class="row-actions"><span class="trash"><?php echo $this->get_flush_group_link( $values['blog_id'], $values['group'], $nonce ); ?></span></div>
 				<button type="button" class="toggle-row"><span class="screen-reader-text"><?php esc_html_e( 'Show more details', 'wp-spider-cache' ); ?></span></button>
 			</td>
-			<td class="keys column-keys">
+			<td class="keys column-keys" data-colname="<?php esc_html_e( 'Keys', 'wp-spider-cache' ); ?>">
 				<?php echo $this->get_cache_key_links( $values['blog_id'], $values['group'], $values['keys'] ); ?>
 			</td>
-			<td>
+			<td class="count column-count" data-colname="<?php esc_html_e( 'Count', 'wp-spider-cache' ); ?>">
 				<?php echo number_format_i18n( count( $values['keys'] ) ); ?>
 			</td>
 		</tr>
@@ -1093,7 +1093,7 @@ class WP_Spider_Cache_UI {
 		ob_start(); ?>
 
 		<tr class="sc-no-results">
-			<td colspan="4" class="column-primary">
+			<td colspan="4" class="column-no-results">
 				<?php esc_html_e( 'No results found.', 'wp-spider-cache' ); ?>
 			</td>
 		</tr>
@@ -1116,8 +1116,8 @@ class WP_Spider_Cache_UI {
 		// Buffer
 		ob_start(); ?>
 
-		<tr class="sc-refreshing-results">
-			<td colspan="4" class="column-primary">
+		<tr class="sc-refresh-results">
+			<td colspan="4" class="column-refreshing">
 				<?php esc_html_e( 'Refreshing...', 'wp-spider-cache' ); ?>
 			</td>
 		</tr>
