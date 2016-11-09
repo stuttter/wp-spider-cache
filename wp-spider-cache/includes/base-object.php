@@ -109,10 +109,8 @@ class WP_Spider_Cache_Object_Base {
 		// Networks & Sites
 		'site-transient',
 		'site-options',
-		'site-lookup',
 		'blog-lookup',
 		'blog-details',
-		'blog-id-cache',
 
 		// Posts
 		'rss',
