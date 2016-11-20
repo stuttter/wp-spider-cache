@@ -1,3 +1,17 @@
+## [4.1.0] - 2016-11-20
+* General code improvements
+
+## [4.0.0] - 2016-10-24
+* Add support for global LudicrousDB cache group
+
+## [3.4.0] - 2016-10-18
+* Fix key & group deletion from UI
+* Move BuddyPress cache-groups to root site of network
+
+## [3.3.0] - 2016-10-07
+* Prevent fatal errors on WordPress 4.7
+* Bump minimum WordPress version to 4.7
+
 ## 3.2.0 (2016-09-22)
 * Prevent fatals if packaged drop-ins are not used
 * Prevent fatal errors if supported back-ends are not installed

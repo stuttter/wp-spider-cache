@@ -9,7 +9,7 @@
  * Description: Your friendly neighborhood caching solution for WordPress
  * Version:     4.1.0
  * Text Domain: wp-spider-cache
- * Domain Path: /assets/lang/
+ * Domain Path: /wp-spider-cache/assets/lang/
  */
 
 // Exit if accessed directly
@@ -38,7 +38,7 @@ class WP_Spider_Cache_UI {
 	 *
 	 * @var string
 	 */
-	private $asset_version = '201610270001';
+	private $asset_version = '201611200001';
 
 	/**
 	 * The resulting page's hook_suffix.
