@@ -1,3 +1,6 @@
+## [5.0.0] - 2017-04-03
+* Updated signup and signupmeta global cache groups
+
 ## [4.1.0] - 2016-11-20
 * General code improvements
 

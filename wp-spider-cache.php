@@ -293,7 +293,8 @@ class WP_Spider_Cache_UI {
 		$cleared[] = wp_cache_delete( $_user->user_login,    'userlogins'   );
 		$cleared[] = wp_cache_delete( $_user->user_nicename, 'userslugs'    );
 		$cleared[] = wp_cache_delete( $_user->user_email,    'useremail'    );
-		$cleared[] = wp_cache_delete( $_user->user_email,    'user_signups' );
+		$cleared[] = wp_cache_delete( $_user->user_email,    'signups'      );
+		$cleared[] = wp_cache_delete( $_user->user_email,    'signupmeta'   );
 
 		// Bail if not redirecting
 		if ( false === $redirect ) {

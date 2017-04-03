@@ -134,7 +134,8 @@ class WP_Spider_Cache_Object_Base {
 		'ludicrousdb',
 
 		// Users
-		'user_signups',
+		'signups',
+		'signupmeta',
 
 		// Blog Aliases
 		'blog-aliases',
