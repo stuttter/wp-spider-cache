@@ -663,7 +663,7 @@ class WP_Spider_Cache_UI {
 					}
 
 					// Loop through keys and add to list
-					foreach( array_keys( $slab_dump ) as $k ) {
+					foreach ( array_keys( $slab_dump ) as $k ) {
 						$list[] = $k;
 					}
 				}
