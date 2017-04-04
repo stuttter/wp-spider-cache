@@ -7,7 +7,7 @@
  * License:     GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Description: Your friendly neighborhood caching solution for WordPress
- * Version:     4.1.0
+ * Version:     5.0.0
  * Text Domain: wp-spider-cache
  * Domain Path: /wp-spider-cache/assets/lang/
  */
@@ -38,12 +38,19 @@ class WP_Spider_Cache_UI {
 	 *
 	 * @var string
 	 */
-	private $asset_version = '201611200001';
+	private $asset_version = '201704030001';
+
+	/**
+	 * Custom cache key separator
+	 *
+	 * @since 5.0.0
+	 */
+	private $cache_key_separator = ':';
 
 	/**
 	 * The resulting page's hook_suffix.
 	 *
-	 * @since 2016-02-18
+	 * @since 2.2.0
 	 *
 	 * @var string
 	 */
@@ -294,7 +301,7 @@ class WP_Spider_Cache_UI {
 		$cleared[] = wp_cache_delete( $_user->user_nicename, 'userslugs'    );
 		$cleared[] = wp_cache_delete( $_user->user_email,    'useremail'    );
 		$cleared[] = wp_cache_delete( $_user->user_email,    'signups'      );
-		$cleared[] = wp_cache_delete( $_user->user_email,    'signupmeta'   );
+		$cleared[] = wp_cache_delete( $_user->user_email,    'signup_meta'  );
 
 		// Bail if not redirecting
 		if ( false === $redirect ) {
@@ -333,8 +340,26 @@ class WP_Spider_Cache_UI {
 				break;
 			case 'blog' :
 			case '' :
-				$this->blog_ids = array( (int) get_current_blog_id() );
+				$this->blog_ids = array( get_current_blog_id() );
 				break;
+		}
+	}
+
+	/**
+	 * Custom cache key separator
+	 *
+	 * @since 5.0.0
+	 */
+	public function set_separator() {
+
+		// Use from object cache
+		$this->cache_key_separator = function_exists( 'wp_object_cache' )
+			? wp_object_cache()->cache_key_separator
+			: ':';
+
+		// Fallback support, incase it's empty
+		if ( empty( $this->cache_key_separator ) ) {
+			$this->cache_key_separator = ':';
 		}
 	}
 
@@ -367,6 +392,7 @@ class WP_Spider_Cache_UI {
 		// Get memcache data
 		$server = filter_var( $_POST['name'], FILTER_VALIDATE_IP );
 		$this->set_blog_ids();
+		$this->set_separator();
 		$this->do_rows( $server );
 
 		wp_die();
@@ -761,20 +787,25 @@ class WP_Spider_Cache_UI {
 		// Offset by 1 if using cache-key salt
 		if ( function_exists( 'wp_object_cache' ) ) {
 			if ( wp_object_cache()->cache_key_salt ) {
-				$offset = 1;
+				$offset++;
 			}
+		}
+
+		// Increase offset for single-site
+		if ( ! is_multisite() ) {
+			$offset++;
 		}
 
 		// Get keys for this server and loop through them
 		foreach ( $this->retrieve_keys( $server ) as $item ) {
 
 			// Skip if CLIENT_ERROR or malforwed [sic]
-			if ( empty( $item ) || ! strstr( $item, ':' ) ) {
+			if ( empty( $item ) || ! strstr( $item, $this->cache_key_separator ) ) {
 				continue;
 			}
 
 			// Separate the item into parts
-			$parts = explode( ':', $item );
+			$parts = explode( $this->cache_key_separator, $item );
 
 			// Remove key salts
 			if ( $offset > 0 ) {
@@ -789,7 +820,7 @@ class WP_Spider_Cache_UI {
 
 			// Single site or global cache group
 			} else {
-				$blog_id = 0;
+				$blog_id = (int) $GLOBALS['blog_id'];
 				$group   = $parts[ 0 ];
 				$global  = true;
 			}
@@ -804,9 +835,9 @@ class WP_Spider_Cache_UI {
 				$key = $parts[ 0 ];
 			} else {
 				if ( true === $global ) {
-					$key = implode( ':', array_slice( $parts, 1 ) );
+					$key = implode( $this->cache_key_separator, array_slice( $parts, 1 ) );
 				} else {
-					$key = implode( ':', array_slice( $parts, 2 ) );
+					$key = implode( $this->cache_key_separator, array_slice( $parts, 2 ) );
 				}
 			}
 
@@ -874,7 +905,7 @@ class WP_Spider_Cache_UI {
 			), $admin_url ); ?>
 
 			<div class="item" data-key="<?php echo esc_attr( $k_code ); ?>">
-				<code><?php echo implode( '</code> : <code>', explode( ':', $key ) ); ?></code>
+				<code><?php echo implode( '</code> : <code>', explode( $this->cache_key_separator, $key ) ); ?></code>
 				<div class="row-actions">
 					<span class="trash">
 						<a class="sc-remove-item" href="<?php echo esc_url( $remove_url ); ?>"><?php esc_html_e( 'Remove', 'wp-spider-cache' ); ?></a>

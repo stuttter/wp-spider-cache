@@ -133,20 +133,42 @@ class WP_Spider_Cache_Object_Base {
 		// System
 		'ludicrousdb',
 
-		// Users
+		// Signups
 		'signups',
-		'signupmeta',
+		'signup_meta',
 
 		// Blog Aliases
 		'blog-aliases',
-		'blog_aliasmeta',
+		'blog_alias_meta',
 
 		// Blog Meta
-		'blogmeta',
+		'blog_meta',
+
+		// Network Meta
+		'site_meta',
 
 		// Core (Persistent)
 		'plugins',
 		'themes'
+	);
+
+	/**
+	 * List of additionally supported BuddyPress metadata groups
+	 *
+	 * @since 5.0.0
+	 *
+	 * @var array
+	 */
+	public $buddypress_groups = array(
+		'activity_meta',
+		'blog_meta',
+		'group_meta',
+		'message_meta',
+		'notification_meta',
+		'xprofile_meta',
+		'xprofile_group_meta',
+		'xprofile_field_meta',
+		'xprofile_data_meta'
 	);
 
 	/**
@@ -185,6 +207,13 @@ class WP_Spider_Cache_Object_Base {
 	public $cache_key_salt = '';
 
 	/**
+	 * Control character used to separate keys
+	 *
+	 * @var string
+	 */
+	public $cache_key_separator = ':';
+
+	/**
 	 * Instantiate the class.
 	 *
 	 * Instantiates the class and returns adds the servers specified
@@ -209,13 +238,9 @@ class WP_Spider_Cache_Object_Base {
 		$this->set_servers();
 		$this->set_salt();
 		$this->set_prefixes();
-	}
 
-	public function __call( $name, $args = array() ) {
-		switch ( $name ) {
-			case 'getResultCode' :
-
-		}
+		// BuddyPress support
+		add_filter( 'wp_cache_key_parts', array( $this, 'buddypress_networks' ), 10, 3 );
 	}
 
 	/**
@@ -265,7 +290,7 @@ class WP_Spider_Cache_Object_Base {
 
 		// Blog prefix
 		$this->blog_prefix = is_multisite()
-			? $blog_id
+			? (int) $blog_id
 			: $table_prefix;
 	}
 
@@ -278,7 +303,7 @@ class WP_Spider_Cache_Object_Base {
 	 */
 	private function set_salt() {
 		if ( defined( 'WP_CACHE_KEY_SALT' ) && WP_CACHE_KEY_SALT ) {
-			$this->cache_key_salt = rtrim( WP_CACHE_KEY_SALT, ':' );
+			$this->cache_key_salt = rtrim( WP_CACHE_KEY_SALT, $this->cache_key_separator );
 		}
 	}
 
@@ -1413,7 +1438,7 @@ class WP_Spider_Cache_Object_Base {
 		foreach ( $derived_items as $derived_key => $value ) {
 
 			// Get the individual item's group
-			$key_pieces = explode( ':', $derived_key );
+			$key_pieces = explode( $this->cache_key_separator, $derived_key );
 
 			// If group is a non-cache group, save to runtime cache, not cache
 			if ( in_array( $key_pieces[ $group_offset ], $this->no_mc_groups, false ) ) {
@@ -1507,41 +1532,34 @@ class WP_Spider_Cache_Object_Base {
 			$keys['salt'] = $this->cache_key_salt;
 		}
 
-		// Decide the prefix
+		// Set prefix
 		$keys['prefix'] = ( false !== array_search( $group, $this->global_groups, true ) )
 			? $this->global_prefix
 			: $this->blog_prefix;
 
-		// Setup group
+		// Set group & key
 		$keys['group'] = $group;
+		$keys['key']   = $key;
 
-		// BuddyPress multi-network namespace
-		if ( function_exists( 'is_multisite' ) && is_multisite() ) {
-
-			// Check for BuddyPress groups
-			if ( ! strstr( $key, ':community:' ) && ( ( 'bp' === $group ) || ( 'bp_' === substr( $group, 0, 3 ) ) || in_array( $group, array( 'activity_meta', 'blog_meta', 'group_meta', 'message_meta', 'notification_meta', 'xprofile_meta', 'xprofile_group_meta', 'xprofile_field_meta', 'xprofile_data_meta' ) ) ) ) {
-				$keys['prefix'] = get_current_site()->blog_id;
-				$keys['group']  = $group . ':community';
-			}
-		}
-
-		// Setup key
-		$keys['key'] = $key;
-
-		// Remove empties
-		$good_keys = array_filter( $keys );
+		/**
+		 * Filter the cache keys array
+		 *
+		 * @since 5.0.0
+		 *
+		 * @param array  $keys  All cache key parts
+		 * @param string $key   The current cache key
+		 * @param string $group The current cache group
+		 */
+		$keys = (array) apply_filters( 'wp_cache_key_parts', array_filter( $keys ), $key, $group );
 
 		// Assemble the cache key
-		$cache_key = implode( $good_keys, ':' );
+		$cache_key = implode( $this->cache_key_separator, $keys );
 
-		// Prevent double colons
-		$cache_key = str_replace( '::', ':', $cache_key );
+		// Prevent double separators
+		$cache_key = str_replace( "{$this->cache_key_separator}{$this->cache_key_separator}", $this->cache_key_separator, $cache_key );
 
 		// Remove all whitespace
-		$cache_key = preg_replace( '/\s+/', '', $cache_key );
-
-		// Return the built cache key
-		return $cache_key;
+		return preg_replace( '/\s+/', '', $cache_key );
 	}
 
 	/**
@@ -1745,5 +1763,56 @@ class WP_Spider_Cache_Object_Base {
 		$this->blog_prefix = is_multisite()
 			? (int) $blog_id
 			: $table_prefix;
+	}
+
+	/**
+	 * Check cache key & group for BuddyPress, and maybe insert a 'community'
+	 * cache key part.
+	 *
+	 * @since 5.0.0
+	 *
+	 * @param array  $keys
+	 * @param string $key
+	 * @param string $group
+	 *
+	 * @return array
+	 */
+	public function buddypress_networks( $keys = array(), $key = '', $group = '' ) {
+
+		// BuddyPress multi-network namespace
+		if ( function_exists( 'is_multisite' ) && is_multisite() ) {
+
+			// Check for BuddyPress groups
+			if ( ! strstr( $key, "{$this->cache_key_separator}community{$this->cache_key_separator}" ) &&
+				(
+					   ( 'bp'  === $group )
+					|| ( 'bp_' === substr( $group, 0, 3 ) )
+					|| in_array( $group, $this->buddypress_groups, true )
+				)
+			) {
+
+				// Setup the new keys return array
+				$new_keys = array();
+
+				// Salt prefix
+				if ( ! empty( $keys['salt'] ) ) {
+					$new_keys['salt'] = $keys['salt'];
+				}
+
+				// Site ID prefix, community, group, and key
+				$new_keys['prefix']    = get_current_site()->blog_id;
+				$new_keys['community'] = 'community';
+				$new_keys['group']     = $group;
+				$new_keys['key']       = $key;
+
+				// Override the return value with new keys
+				$keys = $new_keys;
+
+				var_dump( $keys ); die;
+			}
+		}
+
+		// Return keys, possibly modified
+		return $keys;
 	}
 }
