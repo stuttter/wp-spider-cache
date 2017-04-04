@@ -820,9 +820,15 @@ class WP_Spider_Cache_UI {
 
 			// Single site or global cache group
 			} else {
-				$blog_id = (int) $GLOBALS['blog_id'];
-				$group   = $parts[ 0 ];
-				$global  = true;
+				if ( is_multisite() ) {
+					$blog_id = 0;
+					$group   = $parts[ 0 ];
+					$global  = true;
+				} else {
+					$blog_id = (int) $GLOBALS['blog_id'];
+					$group   = $parts[ 0 ];
+					$global  = true;
+				}
 			}
 
 			// Only show global keys and keys for this site
