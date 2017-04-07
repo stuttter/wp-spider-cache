@@ -802,7 +802,7 @@ class WP_Spider_Cache_Object_Base {
 		$derived_key = $this->buildKey( $key, $group );
 
 		// Assume object is not found
-		$found = $value = false;
+		$found = $value = $force = false;
 
 		// If either $cache_db, or $cas_token is set, must hit Memcached and bypass runtime cache
 		if ( method_exists( $this->daemon, 'get' ) ) {
@@ -856,6 +856,10 @@ class WP_Spider_Cache_Object_Base {
 	 * @return  bool|mixed                  Cached object value.
 	 */
 	public function getByKey( $server_key, $key, $group = 'default', $force = false, &$found = null, $cache_cb = null, &$cas_token = null ) {
+
+		// Unused
+		$force = false;
+
 		/**
 		 * Need to be careful how "get" is called. If you send $cache_cb, and $cas_token, it will hit cache.
 		 * Only send those args if they were sent to this function.
