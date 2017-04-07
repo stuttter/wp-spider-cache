@@ -278,20 +278,17 @@ class WP_Spider_Cache_Object_Base {
 	 * @since 2.2.0
 	 *
 	 * @global  int    $blog_id
-	 * @global  string $table_prefix
 	 */
 	private function set_prefixes() {
-		global $blog_id, $table_prefix;
+		global $blog_id;
 
 		// Global prefix
 		$this->global_prefix = is_multisite() || ( defined( 'CUSTOM_USER_TABLE' ) && defined( 'CUSTOM_USER_META_TABLE' ) )
 			? ''
-			: $table_prefix;
+			: (int) $blog_id;
 
 		// Blog prefix
-		$this->blog_prefix = is_multisite()
-			? (int) $blog_id
-			: $table_prefix;
+		$this->blog_prefix = (int) $blog_id;
 	}
 
 	/**
@@ -1758,11 +1755,7 @@ class WP_Spider_Cache_Object_Base {
 	 * @return void
 	 */
 	public function switch_to_blog( $blog_id = 0 ) {
-		global $table_prefix;
-
-		$this->blog_prefix = is_multisite()
-			? (int) $blog_id
-			: $table_prefix;
+		$this->blog_prefix = (int) $blog_id;
 	}
 
 	/**
