@@ -1708,13 +1708,13 @@ class WP_Spider_Cache_Object_Base {
 	 * @param   array       $groups     Array of groups.
 	 * @return  void
 	 */
-	public function add_global_groups( $groups ) {
+	public function add_global_groups( $groups = array() ) {
 		if ( ! is_array( $groups ) ) {
 			$groups = (array) $groups;
 		}
 
 		$this->global_groups = array_merge( $this->global_groups, $groups );
-		$this->global_groups = array_unique( $this->global_groups );
+		$this->global_groups = array_unique( array_filter( $this->global_groups ) );
 	}
 
 	/**
@@ -1726,13 +1726,13 @@ class WP_Spider_Cache_Object_Base {
 	 * @param   array       $groups     Array of groups.
 	 * @return  void
 	 */
-	public function add_non_persistent_groups( $groups ) {
+	public function add_non_persistent_groups( $groups = array() ) {
 		if ( ! is_array( $groups ) ) {
 			$groups = (array) $groups;
 		}
 
 		$this->no_mc_groups = array_merge( $this->no_mc_groups, $groups );
-		$this->no_mc_groups = array_unique( $this->no_mc_groups );
+		$this->no_mc_groups = array_unique( array_filter( $this->no_mc_groups ) );
 	}
 
 	/**
@@ -1759,7 +1759,9 @@ class WP_Spider_Cache_Object_Base {
 	 * @return void
 	 */
 	public function switch_to_blog( $blog_id = 0 ) {
-		$this->blog_prefix = (int) $blog_id;
+		$this->blog_prefix = is_multisite()
+			? (int) $blog_id
+			: (int) $GLOBALS['blog_id'];
 	}
 
 	/**
