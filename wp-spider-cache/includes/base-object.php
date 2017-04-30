@@ -85,7 +85,7 @@ class WP_Spider_Cache_Object_Base {
 	public $preserve_order = null;
 
 	/**
-	 * Holds the non-cached objects.
+	 * Holds the non-persistent objects.
 	 *
 	 * @var array
 	 */
@@ -176,14 +176,7 @@ class WP_Spider_Cache_Object_Base {
 	 *
 	 * @var array
 	 */
-	public $no_mc_groups = array( 'counts' );
-
-	/**
-	 * List of groups to only look locally for
-	 *
-	 * @var type
-	 */
-	public $no_remote_groups = array();
+	public $non_persistent_groups = array();
 
 	/**
 	 * Prefix used for global groups.
@@ -352,8 +345,8 @@ class WP_Spider_Cache_Object_Base {
 		$derived_key = $this->buildKey( $key, $group );
 		$expiration  = $this->sanitize_expiration( $expiration );
 
-		// If group is a non-cache group, save to runtime cache, not cache
-		if ( in_array( $group, $this->no_mc_groups, false ) ) {
+		// If group is a non-persistent group, save to runtime cache, not cache
+		if ( $this->is_non_persistent_group( $group ) ) {
 
 			// Add does not set the value if the key exists; mimic that here
 			if ( isset( $this->cache[ $derived_key ] ) ) {
@@ -412,9 +405,9 @@ class WP_Spider_Cache_Object_Base {
 	 * @return  bool                        Returns true on success or false on failure.
 	 */
 	public function addServer( $host, $port, $weight = 0 ) {
-		$host   = is_string( $host ) ? $host : '127.0.0.1';
-		$port   = is_numeric( $port ) && $port > 0 ? $port : 11211;
-		$weight = is_numeric( $weight ) && $weight > 0 ? $weight : 1;
+		$host   = is_string( $host    )                    ? $host   : '127.0.0.1';
+		$port   = is_numeric( $port   ) && ( $port   > 0 ) ? $port   : 11211;
+		$weight = is_numeric( $weight ) && ( $weight > 0 ) ? $weight : 1;
 
 		return method_exists( $this->daemon, 'addServer' )
 			? $this->daemon->addServer( $host, $port, $weight )
@@ -466,8 +459,8 @@ class WP_Spider_Cache_Object_Base {
 
 		$derived_key = $this->buildKey( $key, $group );
 
-		// If group is a non-cache group, append to runtime cache value, not cache
-		if ( in_array( $group, $this->no_mc_groups, false ) ) {
+		// If group is a non-persistent group, append to runtime cache
+		if ( $this->is_non_persistent_group( $group ) ) {
 			if ( ! isset( $this->cache[ $derived_key ] ) ) {
 				return false;
 			}
@@ -539,11 +532,11 @@ class WP_Spider_Cache_Object_Base {
 		$expiration  = $this->sanitize_expiration( $expiration );
 
 		/**
-		 * If group is a non-cached group, save to runtime cache, not cache. Note
+		 * If group is a non-persistent group, save to runtime cache, not cache. Note
 		 * that since check and set cannot be emulated in the run time cache, this value
-		 * operation is treated as a normal "add" for no_mc_groups.
+		 * operation is treated as a normal "add" for non_persistent_groups.
 		 */
-		if ( in_array( $group, $this->no_mc_groups, false ) ) {
+		if ( $this->is_non_persistent_group( $group ) ) {
 			$this->add_to_internal_cache( $derived_key, $value );
 			return true;
 		}
@@ -622,8 +615,8 @@ class WP_Spider_Cache_Object_Base {
 	public function decrement( $key, $offset = 1, $group = 'default' ) {
 		$derived_key = $this->buildKey( $key, $group );
 
-		// Decrement values in no_mc_groups
-		if ( in_array( $group, $this->no_mc_groups, false ) ) {
+		// Decrement values in non_persistent_groups
+		if ( $this->is_non_persistent_group( $group ) ) {
 
 			// Only decrement if the key already exists and value is 0 or greater (mimics memcached behavior)
 			if ( isset( $this->cache[ $derived_key ] ) && $this->cache[ $derived_key ] >= 0 ) {
@@ -691,8 +684,8 @@ class WP_Spider_Cache_Object_Base {
 		$result      = false;
 		$derived_key = $this->buildKey( $key, $group );
 
-		// Remove from no_mc_groups array
-		if ( in_array( $group, $this->no_mc_groups, false ) ) {
+		// Remove from non_persistent_groups array
+		if ( $this->is_non_persistent_group( $group ) ) {
 			if ( isset( $this->cache[ $derived_key ] ) ) {
 				unset( $this->cache[ $derived_key ] );
 			}
@@ -806,16 +799,29 @@ class WP_Spider_Cache_Object_Base {
 
 		// If either $cache_db, or $cas_token is set, must hit Memcached and bypass runtime cache
 		if ( method_exists( $this->daemon, 'get' ) ) {
-			if ( func_num_args() > 6 && ! in_array( $group, $this->no_mc_groups, false ) ) {
+			$non_persistent = $this->is_non_persistent_group( $group );
+
+			// cas
+			if ( ( func_num_args() > 6 ) && ( false === $non_persistent ) ) {
 				$value = ( false !== $byKey )
 					? $this->daemon->getByKey( $server_key, $derived_key, $cache_cb, $cas_token )
 					: $this->daemon->get( $derived_key, $cache_cb, $cas_token );
+
+			// Non-cas
 			} else {
+
+				// Exists locally
 				if ( isset( $this->cache[ $derived_key ] ) ) {
 					$found = true;
-					return is_object( $this->cache[ $derived_key ] ) ? clone $this->cache[ $derived_key ] : $this->cache[ $derived_key ];
-				} elseif ( in_array( $group, $this->no_mc_groups, false ) ) {
+					return is_object( $this->cache[ $derived_key ] )
+						? clone $this->cache[ $derived_key ]
+						: $this->cache[ $derived_key ];
+
+				// Missing and not-persistent
+				} elseif ( true === $non_persistent ) {
 					return false;
+
+				// Get from daemon (most common)
 				} else {
 					$value = ( false !== $byKey )
 						? $this->daemon->getByKey( $server_key, $derived_key )
@@ -829,7 +835,9 @@ class WP_Spider_Cache_Object_Base {
 			$found = true;
 		}
 
-		return is_object( $value ) ? clone $value : $value;
+		return is_object( $value )
+			? clone $value
+			: $value;
 	}
 
 	/**
@@ -864,11 +872,9 @@ class WP_Spider_Cache_Object_Base {
 		 * Need to be careful how "get" is called. If you send $cache_cb, and $cas_token, it will hit cache.
 		 * Only send those args if they were sent to this function.
 		 */
-		if ( func_num_args() > 5 ) {
-			return $this->get( $key, $group, $force, $found, $server_key, true, $cache_cb, $cas_token );
-		} else {
-			return $this->get( $key, $group, $force, $found, $server_key, true );
-		}
+		return  ( func_num_args() > 5 )
+			? $this->get( $key, $group, $force, $found, $server_key, true, $cache_cb, $cas_token )
+			: $this->get( $key, $group, $force, $found, $server_key, true );
 	}
 
 	/**
@@ -950,10 +956,10 @@ class WP_Spider_Cache_Object_Base {
 
 		/**
 		 * If either $cas_tokens, or $flags is set, must hit Memcached and bypass runtime cache. Note that
-		 * this will purposely ignore no_mc_groups values as they cannot handle CAS tokens or the special
-		 * flags; however, if the groups of groups contains a no_mc_group, this is bypassed.
+		 * this will purposely ignore non_persistent_groups values as they cannot handle CAS tokens or the special
+		 * flags; however, if the groups of groups contains a non_persistent_group, this is bypassed.
 		 */
-		if ( func_num_args() > 3 && ! $this->contains_no_mc_group( $groups ) ) {
+		if ( func_num_args() > 3 && ! $this->is_non_persistent_group( $groups ) ) {
 			if ( ! empty( $this->daemon ) ) {
 				$values = ! empty( $server_key )
 					? $this->daemon->getMultiByKey( $server_key, $derived_keys, $cas_tokens, $flags )
@@ -1025,11 +1031,9 @@ class WP_Spider_Cache_Object_Base {
 		 * Need to be careful how "getMulti" is called. If you send $cache_cb, and $cas_token, it will hit cache.
 		 * Only send those args if they were sent to this function.
 		 */
-		if ( func_num_args() > 3 ) {
-			return $this->getMulti( $keys, $groups, $server_key, $cas_tokens, $flags );
-		} else {
-			return $this->getMulti( $keys, $groups, $server_key );
-		}
+		return ( func_num_args() > 3 )
+			? $this->getMulti( $keys, $groups, $server_key, $cas_tokens, $flags )
+			: $this->getMulti( $keys, $groups, $server_key );
 	}
 
 	/**
@@ -1138,8 +1142,8 @@ class WP_Spider_Cache_Object_Base {
 	public function increment( $key, $offset = 1, $group = 'default' ) {
 		$derived_key = $this->buildKey( $key, $group );
 
-		// Increment values in no_mc_groups
-		if ( in_array( $group, $this->no_mc_groups, false ) ) {
+		// Increment values in non_persistent_groups
+		if ( $this->is_non_persistent_group( $group ) ) {
 
 			// Only increment if the key already exists and the number is currently 0 or greater (mimics memcached behavior)
 			if ( isset( $this->cache[ $derived_key ] ) &&  $this->cache[ $derived_key ] >= 0 ) {
@@ -1218,8 +1222,8 @@ class WP_Spider_Cache_Object_Base {
 
 		$derived_key = $this->buildKey( $key, $group );
 
-		// If group is a non-cache group, prepend to runtime cache value, not cache
-		if ( in_array( $group, $this->no_mc_groups, false ) ) {
+		// If group is a non-persistent group, prepend to runtime cache value, not cache
+		if ( $this->is_non_persistent_group( $group ) ) {
 			if ( ! isset( $this->cache[ $derived_key ] ) ) {
 				return $result;
 			}
@@ -1303,8 +1307,8 @@ class WP_Spider_Cache_Object_Base {
 		$derived_key = $this->buildKey( $key, $group );
 		$expiration  = $this->sanitize_expiration( $expiration );
 
-		// If group is a non-cache group, save to runtime cache, not persistent cache
-		if ( in_array( $group, $this->no_mc_groups, false ) ) {
+		// If group is a non-persistent group, save to runtime cache, not persistent cache
+		if ( $this->is_non_persistent_group( $group ) ) {
 
 			// Replace won't save unless the key already exists; mimic this behavior here
 			if ( ! isset( $this->cache[ $derived_key ] ) ) {
@@ -1369,8 +1373,8 @@ class WP_Spider_Cache_Object_Base {
 		$derived_key = $this->buildKey( $key, $group );
 		$expiration  = $this->sanitize_expiration( $expiration );
 
-		// If group is a non-cache group, save to runtime cache, not cache
-		if ( in_array( $group, $this->no_mc_groups, false ) ) {
+		// If group is a non-persistent group, save to runtime cache, not cache
+		if ( $this->is_non_persistent_group( $group ) ) {
 			$this->add_to_internal_cache( $derived_key, $value );
 			return true;
 		}
@@ -1435,14 +1439,14 @@ class WP_Spider_Cache_Object_Base {
 		$derived_items = array_combine( $derived_keys, $items );
 		$group_offset  = empty( $this->cache_key_salt ) ? 1 : 2;
 
-		// Do not add to cache if in no_mc_groups
+		// Do not add to cache if in non_persistent_groups
 		foreach ( $derived_items as $derived_key => $value ) {
 
 			// Get the individual item's group
 			$key_pieces = explode( $this->cache_key_separator, $derived_key );
 
-			// If group is a non-cache group, save to runtime cache, not cache
-			if ( in_array( $key_pieces[ $group_offset ], $this->no_mc_groups, false ) ) {
+			// If group is a non-persistent group, save to runtime cache, not cache
+			if ( $this->is_non_persistent_group( $key_pieces[ $group_offset ] ) ) {
 				$this->add_to_internal_cache( $derived_key, $value );
 				unset( $derived_items[ $derived_key ] );
 			}
@@ -1626,7 +1630,7 @@ class WP_Spider_Cache_Object_Base {
 	 * @return string|int                   The sanitized expiration time.
 	 */
 	public function sanitize_expiration( $expiration ) {
-		if ( $expiration > $this->thirty_days && $expiration <= $this->now ) {
+		if ( ( $expiration > $this->thirty_days ) && ( $expiration <= $this->now ) ) {
 			$expiration += $this->now;
 		}
 
@@ -1649,11 +1653,9 @@ class WP_Spider_Cache_Object_Base {
 		$type = gettype( $original );
 
 		// Combine the values based on direction of the "pend"
-		if ( 'pre' === $direction ) {
-			$combined = $pended . $original;
-		} else {
-			$combined = $original . $pended;
-		}
+		$combined = ( 'pre' === $direction )
+			? $pended . $original
+			: $original . $pended;
 
 		// Cast type of combined value
 		settype( $combined, $type );
@@ -1676,26 +1678,31 @@ class WP_Spider_Cache_Object_Base {
 	}
 
 	/**
-	 * Determines if a no_mc_group exists in a group of groups.
+	 * Determines if a non_persistent_group exists in a group of groups.
 	 *
 	 * @param   mixed   $groups     The groups to search.
-	 * @return  bool                True if a no_mc_group is present; false if a no_mc_group is not present.
+	 * @return  bool                True if a non_persistent_group is present; false if a non_persistent_group is not present.
 	 */
-	public function contains_no_mc_group( $groups ) {
+	public function is_non_persistent_group( $groups ) {
+
+		// Likely a string
 		if ( is_scalar( $groups ) ) {
-			return in_array( $groups, $this->no_mc_groups, false );
+			return in_array( $groups, $this->non_persistent_groups, false );
 		}
 
+		// Bail if not an array
 		if ( ! is_array( $groups ) ) {
 			return false;
 		}
 
+		// Group of groups
 		foreach ( $groups as $group ) {
-			if ( in_array( $group, $this->no_mc_groups, false ) ) {
+			if ( in_array( $group, $this->non_persistent_groups, false ) ) {
 				return true;
 			}
 		}
 
+		// Not non-persistent
 		return false;
 	}
 
@@ -1731,8 +1738,8 @@ class WP_Spider_Cache_Object_Base {
 			$groups = (array) $groups;
 		}
 
-		$this->no_mc_groups = array_merge( $this->no_mc_groups, $groups );
-		$this->no_mc_groups = array_unique( array_filter( $this->no_mc_groups ) );
+		$this->non_persistent_groups = array_merge( $this->non_persistent_groups, $groups );
+		$this->non_persistent_groups = array_unique( array_filter( $this->non_persistent_groups ) );
 	}
 
 	/**
@@ -1742,7 +1749,7 @@ class WP_Spider_Cache_Object_Base {
 	 * @param   int|string  $group      Group that the value belongs to.
 	 * @return  bool|mixed              Value on success; false on failure.
 	 */
-	public function get_from_runtime_cache( $key, $group ) {
+	public function get_from_non_persistent_cache( $key, $group ) {
 		$derived_key = $this->buildKey( $key, $group );
 
 		if ( isset( $this->cache[ $derived_key ] ) ) {
@@ -1806,8 +1813,6 @@ class WP_Spider_Cache_Object_Base {
 
 				// Override the return value with new keys
 				$keys = $new_keys;
-
-				var_dump( $keys ); die;
 			}
 		}
 
