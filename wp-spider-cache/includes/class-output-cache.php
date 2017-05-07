@@ -29,7 +29,7 @@ class WP_Spider_Cache_Output {
 	public $max_age = 600;
 
 	/**
-	 * False disables sending buffers to remote datacenters
+	 * False disables sending buffers to remote data centers
 	 *
 	 * @var bool
 	 */
@@ -777,7 +777,7 @@ HTML;
 		global $timestart, $timeend;
 
 		$mtime     = microtime();
-		$mtime     = explode( ' ',$mtime );
+		$mtime     = explode( ' ', $mtime );
 		$mtime     = $mtime[1] + $mtime[0];
 		$timeend   = $mtime;
 		$timetotal = $timeend - $timestart;
