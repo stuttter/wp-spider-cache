@@ -10,7 +10,7 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Persistent WordPress Object Cache (in this case) powered by Memcached
+ * Persistent WordPress Object Cache (in this case) based on Memcached
  *
  * WordPress's Object Cache is used to save on trips to the database. It stores
  * all of the cache data to memory and makes the cache contents available by
