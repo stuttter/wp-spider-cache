@@ -1181,7 +1181,7 @@ class WP_Spider_Cache_UI {
 			$retval = wp_cache_get_server_list();
 
 		// Memcache exists on local server
-		} elseif ( extension_loaded( 'Memcache' ) ) {
+		} elseif ( extension_loaded( 'Memcached' ) ) {
 			$retval = array( array(
 				'host'   => '127.0.0.1',
 				'port'   => 11211,
