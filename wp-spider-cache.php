@@ -1181,10 +1181,18 @@ class WP_Spider_Cache_UI {
 			$retval = wp_cache_get_server_list();
 
 		// Memcache exists on local server
-		} elseif ( class_exists( 'Memcache' ) ) {
+		} elseif ( extension_loaded( 'Memcache' ) ) {
 			$retval = array( array(
 				'host'   => '127.0.0.1',
 				'port'   => 11211,
+				'weight' => 10
+			) );
+
+		// Redis exists on local server
+		} elseif ( extension_loaded( 'Redis' ) ) {
+			$retval = array( array(
+				'host'   => '127.0.0.1',
+				'port'   => 6379,
 				'weight' => 10
 			) );
 		}
