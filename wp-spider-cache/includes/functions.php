@@ -874,7 +874,7 @@ function wp_object_cache() {
  *
  * @since 2.1.0
  *
- * @global  WP_Spider_Cache_Output  $wp_object_cache   WordPress Object Cache
+ * @global  WP_Spider_Cache_Object  $wp_object_cache   WordPress Object Cache
  * @return  void
  */
 function wp_object_cache_init() {
@@ -887,7 +887,7 @@ function wp_object_cache_init() {
  *
  * @since 2.1.0
  *
- * @global  WP_Spider_Cache_Output  $wp_object_cache   WordPress Object Cache
+ * @global  WP_Spider_Cache_Output  $wp_output_cache   WordPress Output Cache
  * @return  void
  */
 function wp_output_cache_init() {
