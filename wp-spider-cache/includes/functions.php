@@ -968,17 +968,17 @@ function wp_output_cache_cancel() {
  * run simple tests. Functions defined in WordPress, plugins, and themes are not
  * available and MUST NOT be used.
  *
- * Example: vary_cache_on_function('return preg_match("/feedburner/i", $_SERVER["HTTP_USER_AGENT"]);');
+ * Example: wp_output_cache_vary('return preg_match("/feedburner/i", $_SERVER["HTTP_USER_AGENT"]);');
  *          This will cause spider_cache to cache a variant for requests from Feedburner.
  *
  * Tips for writing $function:
  * - DO NOT use any functions from your theme or plugins. Those files have not
  *   been included. Fatal error.
- * - DO NOT use any WordPress functions except is_admin() and is_multisite().
+ * - DO NOT use any WordPress functions except from load.php and plugin.php.
  *   Fatal error.
  * - DO NOT include or require files from anywhere without consulting expensive
  *   professionals first. Fatal error.
- * - DO NOT use $wpdb, $blog_id, $current_user, etc. These have not been initialized.
+ * - DO NOT use $wpdb, $blog_id, $current_user, etc. These have not been properly initialized.
  * - DO understand how create_function works. This is how your code is used: create_function('', $function);
  * - DO remember to return something. The return value determines the cache variant.
  *
@@ -996,9 +996,9 @@ function wp_output_cache_vary( $function = '' ) {
 		die( 'Illegal word in variant determiner.' );
 	}
 
-	// Bail if missing variables
-	if ( ! preg_match( '/\$_/', $function ) ) {
-		die( 'Variant determiner should refer to at least one $_ variable.' );
+	// Bail if not callable or missing variables
+	if ( ! is_callable( $function ) && ! preg_match( '/\$_/', $function ) ) {
+		die( 'Variant determiner should be callable or use at least one $_ variable.' );
 	}
 
 	wp_output_cache()->add_variant( $function );

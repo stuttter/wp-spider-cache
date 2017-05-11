@@ -159,7 +159,7 @@ class WP_Spider_Cache_Output {
 	private $do = false;
 
 	/**
-	 * Main spider_cache constructor
+	 * Main output cache constructor
 	 *
 	 * @since 2.0.0
 	 */
@@ -175,6 +175,11 @@ class WP_Spider_Cache_Output {
 		// Bail if cookies are present
 		if ( $this->has_cookies() ) {
 			return;
+		}
+
+		// Support cache debug constant
+		if ( defined( 'WP_CACHE_DEBUG' ) ) {
+			$this->debug = (bool) WP_CACHE_DEBUG;
 		}
 
 		// Set the started time
@@ -212,7 +217,7 @@ class WP_Spider_Cache_Output {
 	 * @param string $status
 	 * @param string $location
 	 *
-	 * @return type
+	 * @return string
 	 */
 	public function redirect_status( $status, $location ) {
 
@@ -303,11 +308,11 @@ class WP_Spider_Cache_Output {
 		// Do not cache blank pages unless they are HTTP redirects
 		$output = trim( $output );
 		if ( empty( $output ) && ( empty( $this->redirect_status ) || empty( $this->redirect_location ) ) ) {
-			return;
+			return $output;
 		}
 
 		// Do not cache 5xx responses
-		if ( isset( $this->status_code ) && intval( $this->status_code / 100 ) == 5 ) {
+		if ( isset( $this->status_code ) && intval( $this->status_code / 100 ) === 5 ) {
 			return $output;
 		}
 
@@ -330,10 +335,10 @@ class WP_Spider_Cache_Output {
 		// PHP5 and higher (
 		foreach ( headers_list() as $header ) {
 			list( $k, $v ) = array_map( 'trim', explode( ':', $header, 2 ) );
-			$this->cache['headers'][ $k ][] = $v;
+			$this->cache['headers'][ $k ] = array( $v );
 		}
 
-		// Set uncached headers
+		// Unset uncached headers
 		if ( ! empty( $this->cache['headers'] ) && ! empty( $this->uncached_headers ) ) {
 			foreach ( $this->uncached_headers as $header ) {
 				unset( $this->cache['headers'][ $header ] );
@@ -355,11 +360,12 @@ class WP_Spider_Cache_Output {
 			}
 		}
 
-		// Set max-age
+		// Set max-age & expiration
 		$this->cache['max_age'] = $this->max_age;
+		$this->cache['expires'] = $this->max_age + $this->seconds + 30;
 
 		// Set cache
-		wp_cache_set( $this->key, $this->cache, $this->group, $this->max_age + $this->seconds + 30 );
+		wp_cache_set( $this->key, $this->cache, $this->group, $this->cache['expires'] );
 
 		// Cache control
 		if ( true === $this->cache_control ) {
@@ -402,7 +408,7 @@ class WP_Spider_Cache_Output {
 	 *
 	 * @since 2.0.0
 	 *
-	 * @param type $dimensions
+	 * @param mixed $dimensions False by default, array of arguments otherwise
 	 */
 	protected function do_variants( $dimensions = false ) {
 
@@ -410,17 +416,29 @@ class WP_Spider_Cache_Output {
 		// then with arguments during the OB handler.
 		if ( false === $dimensions ) {
 			$dimensions = wp_cache_get( "{$this->url_key}_vary", $this->group );
-		} else {
+		} elseif ( ! empty( $dimensions ) ) {
 			wp_cache_set( "{$this->url_key}_vary", $dimensions, $this->group, $this->max_age + 10 );
 		}
 
+		// Bail if no dimensions
+		if ( empty( $dimensions ) || ! is_array( $dimensions ) ) {
+			return;
+		}
+
 		// Sort keys
-		if ( is_array( $dimensions ) ) {
-			ksort( $dimensions ); // OCD much?
-			foreach ( $dimensions as $key => $function ) {
-				$fun   = create_function( '', $function );
-				$value = $fun();
-				$this->keys[ $key ] = $value;
+		ksort( $dimensions );
+
+		// Evaluate
+		foreach ( $dimensions as $key => $function ) {
+
+			// Callable (Required in PHP7.2)
+			if ( is_callable( $function ) ) {
+				$this->keys[ $key ] = $function();
+
+			// Raw code, so try to evaluate it
+			} else {
+				$created_function   = create_function( '', $function );
+				$this->keys[ $key ] = $created_function();
 			}
 		}
 	}
@@ -493,11 +511,13 @@ HTML;
 			}
 		}
 
+		// Bail if output does not include a head tag
 		$head_position = strpos( $this->cache['output'], '<head' );
 		if ( false === $head_position ) {
 			return;
 		}
 
+		// Put debug HTML ahead of the <head> tag
 		$this->cache['output'] = substr_replace( $this->cache['output'], $debug_html, $head_position, 0 );
 	}
 
@@ -520,38 +540,114 @@ HTML;
 		// Last-Modified headers.
 		@header( 'Vary: Cookie', false );
 
+		// Setup attributes
+		$this->setup_query();
+		$this->setup_protocol();
+		$this->setup_keys();
+		$this->setup_url();
+
+		// Setup keys and variants
+		$this->do_variants();
+		$this->generate_keys();
+
+		// Maybe output from cache
+		$this->maybe_update_cache();
+		$this->maybe_output_cache();
+
+		// Didn't meet the minimum condition?
+		if ( ( false === $this->do ) && ( false === $this->genlock ) ) {
+			return;
+		}
+
+		// Headers and such
+		add_filter( 'status_header',      array( $this, 'status_header'   ), 10, 2 );
+		add_filter( 'wp_redirect_status', array( $this, 'redirect_status' ), 10, 2 );
+
+		// Start the spidey-sense listening
+		ob_start( array( $this, 'ob' ) );
+	}
+
+	/**
+	 * Setup the query attribute if a query string exists
+	 *
+	 * @since 6.0.0
+	 */
+	private function setup_query() {
+
 		// Things that define a unique page.
 		if ( isset( $_SERVER['QUERY_STRING'] ) ) {
 			parse_str( $_SERVER['QUERY_STRING'], $this->query );
 		}
+	}
 
-		// Get the server protocol
-		$protocol = wp_get_server_protocol();
+	/**
+	 * Setup the unique attribute based on the server protocol
+	 *
+	 * @since 6.0.0
+	 */
+	private function setup_protocol() {
 
 		// Build different versions for HTTP/1.1 and HTTP/2.0
+		$protocol = wp_get_server_protocol();
 		if ( 'HTTP/1.0' !== $protocol ) {
-			$this->unique['server_protocol'] = $_SERVER['SERVER_PROTOCOL'];
+			$this->unique['server_protocol'] = $protocol;
 		}
+	}
+
+	/**
+	 * Setup the keys array attribute
+	 *
+	 * @since 6.0.0
+	 */
+	private function setup_keys() {
+
+		// Get the path
+		$path = ( $this->pos = strpos( $_SERVER['REQUEST_URI'], '?' ) )
+			? substr( $_SERVER['REQUEST_URI'], 0, $this->pos )
+			: $_SERVER['REQUEST_URI'];
 
 		// Setup keys
 		$this->keys = array(
 			'host'   => $_SERVER['HTTP_HOST'],
 			'method' => $_SERVER['REQUEST_METHOD'],
-			'path'   => ( $this->pos = strpos( $_SERVER['REQUEST_URI'], '?' ) ) ? substr( $_SERVER['REQUEST_URI'], 0, $this->pos ) : $_SERVER['REQUEST_URI'],
+			'path'   => $path,
 			'query'  => $this->query,
 			'extra'  => $this->unique,
-			'ssl'    => $this->is_ssl()
+			'ssl'    => is_ssl()
 		);
+	}
+
+	/**
+	 * Setup the URL/permalink attributes.
+	 *
+	 * Must be called after setup_keys()
+	 *
+	 * @since 6.0.0
+	 */
+	private function setup_url() {
+
+		// Get HTTP scheme
+		$scheme = ( true === $this->keys['ssl'] )
+			? 'https://'
+			: 'http://';
+
+		// Maybe get post query string
+		$p = isset( $this->keys['query']['p'] )
+			? '?p=' . $this->keys['query']['p']
+			: '';
 
 		// Recreate the permalink from the URL
-		$scheme            = ( true === $this->keys['ssl'] ) ? 'https://' : 'http://';
-		$this->permalink   = $scheme . $this->keys['host'] . $this->keys['path'] . ( isset( $this->keys['query']['p'] ) ? "?p=" . $this->keys['query']['p'] : '' );
+		$this->permalink   = $scheme . $this->keys['host'] . $this->keys['path'] . $p;
 		$this->url_key     = md5( $this->permalink );
 		$this->url_version = (int) wp_cache_get( "{$this->url_key}_version", $this->group );
+	}
 
-		// Setup keys and variants
-		$this->do_variants();
-		$this->generate_keys();
+	/**
+	 * Populate the cache variable, and maybe add/increment related caches.
+	 *
+	 * @since 6.0.0
+	 */
+	private function maybe_update_cache() {
 
 		// Get the spider_cache
 		$this->cache = wp_cache_get( $this->key, $this->group );
@@ -573,104 +669,137 @@ HTML;
 		if ( ( true === $this->do ) && isset( $this->cache['version'] ) && ( $this->cache['version'] < $this->url_version ) ) {
 			$this->genlock = wp_cache_add( "{$this->url_key}_genlock", 1, $this->group, 10 );
 		}
+	}
 
-		// Did we find a spider_cached page that hasn't expired?
-		if ( isset( $this->cache['time'] ) && ( false === $this->genlock ) && ( $this->started < $this->cache['time'] + $this->cache['max_age'] ) ) {
+	/**
+	 * Maybe output the contents from cache, including performing a redirection
+	 * if necessary.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @return void
+	 */
+	private function maybe_output_cache() {
 
-			// Issue redirect if cached and enabled
-			if ( $this->cache['redirect_status'] && $this->cache['redirect_location'] && $this->cache_redirects ) {
-				$status   = $this->cache['redirect_status'];
-				$location = $this->cache['redirect_location'];
-
-				// From vars.php
-				$is_IIS = ( strpos( $_SERVER['SERVER_SOFTWARE'], 'Microsoft-IIS' ) !== false || strpos( $_SERVER['SERVER_SOFTWARE'], 'ExpressionDevServer' ) !== false );
-
-				$this->do_headers( $this->headers );
-
-				if ( ! empty( $is_IIS ) ) {
-					@header( "Refresh: 0;url={$location}" );
-				} else {
-					if ( php_sapi_name() !== 'cgi-fcgi' ) {
-						$texts = array(
-							300 => 'Multiple Choices',
-							301 => 'Moved Permanently',
-							302 => 'Found',
-							303 => 'See Other',
-							304 => 'Not Modified',
-							305 => 'Use Proxy',
-							306 => 'Reserved',
-							307 => 'Temporary Redirect',
-						);
-
-						isset( $texts[ $status ] )
-							? @header( "{$protocol} {$status} {$texts[ $status ]}" )
-							: @header( "{$protocol} 302 Found" );
-					}
-
-					@header( "Location: {$location}" );
-				}
-
-				exit;
-			}
-
-			// Respect ETags served with feeds.
-			$three_oh_four = false;
-			if ( isset( $_SERVER['HTTP_IF_NONE_MATCH'] ) && isset( $this->cache['headers']['ETag'][0] ) && $_SERVER['HTTP_IF_NONE_MATCH'] == $this->cache['headers']['ETag'][0] ) {
-				$three_oh_four = true;
-
-			// Respect If-Modified-Since.
-			} elseif ( $this->cache_control && isset( $_SERVER['HTTP_IF_MODIFIED_SINCE'] ) ) {
-
-				$client_time = strtotime( $_SERVER['HTTP_IF_MODIFIED_SINCE'] );
-				$cache_time  = isset( $this->cache['headers']['Last-Modified'][0] )
-					? strtotime( $this->cache['headers']['Last-Modified'][0] )
-					: $this->cache['time'];
-
-				if ( $client_time >= $cache_time ) {
-					$three_oh_four = true;
-				}
-			}
-
-			// Use the spider_cache save time for Last-Modified so we can issue
-			// "304 Not Modified" but don't clobber a cached Last-Modified header.
-			if ( $this->cache_control && ! isset( $this->cache['headers']['Last-Modified'][0] ) ) {
-				@header( 'Last-Modified: ' . gmdate( 'D, d M Y H:i:s', $this->cache['time'] ) . ' GMT', true );
-				@header( 'Cache-Control: max-age=' . ( $this->cache['max_age'] - $this->started + $this->cache['time'] ) . ', must-revalidate', true );
-			}
-
-			// Add some debug info just before </head>
-			if ( true === $this->debug ) {
-				$this->add_debug_from_cache();
-			}
-
-			$this->do_headers( $this->headers, $this->cache['headers'] );
-
-			// Bail if not modified
-			if ( true === $three_oh_four ) {
-				@header( "HTTP/1.1 304 Not Modified", true, 304 );
-				die;
-			}
-
-			// Set header if cached
-			if ( ! empty( $this->cache['status_header'] ) ) {
-				@header( $this->cache['status_header'], true );
-			}
-
-			// Have you ever heard a death rattle before?
-			die( $this->cache['output'] );
-		}
-
-		// Didn't meet the minimum condition?
-		if ( ( false === $this->do ) && ( false === $this->genlock ) ) {
+		// Bail if no page, or is locked or expired
+		if ( ! isset( $this->cache['time'] ) || ( true === $this->genlock ) || ( $this->started > ( $this->cache['time'] + $this->cache['max_age'] ) ) ) {
 			return;
 		}
 
-		// Headers and such
-		add_filter( 'status_header',      array( $this, 'status_header'   ), 10, 2 );
-		add_filter( 'wp_redirect_status', array( $this, 'redirect_status' ), 10, 2 );
+		// Maybe perform a redirection
+		$this->maybe_do_redirect();
 
-		// Start the spidey-sense listening
-		ob_start( array( $this, 'ob' ) );
+		// Use the spider_cache save time for Last-Modified so we can issue
+		// "304 Not Modified" but don't clobber a cached Last-Modified header.
+		if ( ( true === $this->cache_control ) && ! isset( $this->cache['headers']['Last-Modified'][0] ) ) {
+			@header( 'Last-Modified: ' . gmdate( 'D, d M Y H:i:s', $this->cache['time'] ) . ' GMT', true );
+			@header( 'Cache-Control: max-age=' . ( $this->cache['max_age'] - $this->started + $this->cache['time'] ) . ', must-revalidate', true );
+		}
+
+		// Add some debug info just before </head>
+		if ( true === $this->debug ) {
+			$this->add_debug_from_cache();
+		}
+
+		$this->do_headers( $this->headers, $this->cache['headers'] );
+
+		// Bail if not modified
+		if ( $this->not_modified() ) {
+			@header( "HTTP/1.1 304 Not Modified", true, 304 );
+			die;
+		}
+
+		// Set header if cached
+		if ( ! empty( $this->cache['status_header'] ) ) {
+			@header( $this->cache['status_header'], true );
+		}
+
+		// Have you ever heard a death rattle before?
+		die( $this->cache['output'] );
+	}
+
+	/**
+	 * Maybe perform a redirection
+	 *
+	 * @since 6.0.0
+	 */
+	private function maybe_do_redirect() {
+
+		// Issue redirect if cached and enabled
+		if ( $this->cache['redirect_status'] && $this->cache['redirect_location'] && $this->cache_redirects ) {
+
+			// Do headers
+			$this->do_headers( $this->headers );
+
+			// From vars.php
+			$is_IIS = ( strpos( $_SERVER['SERVER_SOFTWARE'], 'Microsoft-IIS' ) !== false || strpos( $_SERVER['SERVER_SOFTWARE'], 'ExpressionDevServer' ) !== false );
+
+			// IIS
+			if ( ! empty( $is_IIS ) ) {
+				@header( "Refresh: 0;url={$this->cache['redirect_location']}" );
+			} else {
+				if ( php_sapi_name() !== 'cgi-fcgi' ) {
+					$texts = array(
+						300 => 'Multiple Choices',
+						301 => 'Moved Permanently',
+						302 => 'Found',
+						303 => 'See Other',
+						304 => 'Not Modified',
+						305 => 'Use Proxy',
+						306 => 'Reserved',
+						307 => 'Temporary Redirect',
+					);
+
+					// Get the protocol
+					$protocol = wp_get_server_protocol();
+
+					// Found/Redirect header
+					isset( $texts[ $this->cache['redirect_status'] ] )
+						? @header( "{$protocol} {$this->cache['redirect_status']} {$texts[ $this->cache['redirect_status'] ]}" )
+						: @header( "{$protocol} 302 Found" );
+				}
+
+				@header( "Location: {$this->cache['redirect_location']}" );
+			}
+
+			// Exit so redirect takes effect
+			exit;
+		}
+	}
+
+	/**
+	 * Has the cached page changed?
+	 *
+	 * @since 6.0.0
+	 *
+	 * @return boolean
+	 */
+	private function not_modified() {
+
+		// Default value
+		$three_oh_four = false;
+
+		// Respect ETags served with feeds.
+		if ( isset( $_SERVER['HTTP_IF_NONE_MATCH'] ) && isset( $this->cache['headers']['ETag'][0] ) && ( $_SERVER['HTTP_IF_NONE_MATCH'] == $this->cache['headers']['ETag'][0] ) ) {
+			$three_oh_four = true;
+
+		// Respect If-Modified-Since.
+		} elseif ( ( true === $this->cache_control ) && isset( $_SERVER['HTTP_IF_MODIFIED_SINCE'] ) ) {
+
+			// Get times
+			$client_time = strtotime( $_SERVER['HTTP_IF_MODIFIED_SINCE'] );
+			$cache_time  = isset( $this->cache['headers']['Last-Modified'][0] )
+				? strtotime( $this->cache['headers']['Last-Modified'][0] )
+				: $this->cache['time'];
+
+			// Maybe 304
+			if ( $client_time >= $cache_time ) {
+				$three_oh_four = true;
+			}
+		}
+
+		// Return 304 status
+		return (bool) $three_oh_four;
 	}
 
 	/**
@@ -745,30 +874,6 @@ HTML;
 	}
 
 	/**
-	 * Determine if SSL is used
-	 *
-	 * This is a private copy of is_ssl() because it's not available when we
-	 * need it.
-	 *
-	 * @since 2.0.0
-	 *
-	 * @return bool True if SSL, false if not used.
-	 */
-	private function is_ssl() {
-		if ( isset( $_SERVER['HTTPS'] ) ) {
-			if ( 'on' === strtolower( $_SERVER['HTTPS'] ) ) {
-				return true;
-			}
-			if ( '1' === $_SERVER['HTTPS'] ) {
-				return true;
-			}
-		} elseif ( isset( $_SERVER['SERVER_PORT'] ) && ( '443' == $_SERVER['SERVER_PORT'] ) ) {
-			return true;
-		}
-		return false;
-	}
-
-	/**
 	 * Defined here because timer_stop() calls number_format_i18n()
 	 *
 	 * @since 2.0.0
@@ -778,8 +883,7 @@ HTML;
 
 		$mtime     = microtime();
 		$mtime     = explode( ' ', $mtime );
-		$mtime     = $mtime[1] + $mtime[0];
-		$timeend   = $mtime;
+		$timeend   = $mtime[1] + $mtime[0];
 		$timetotal = $timeend - $timestart;
 		$r         = number_format( $timetotal, $precision );
 
