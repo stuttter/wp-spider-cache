@@ -330,7 +330,7 @@ class WP_Spider_Cache_Output {
 		// PHP5 and higher (
 		foreach ( headers_list() as $header ) {
 			list( $k, $v ) = array_map( 'trim', explode( ':', $header, 2 ) );
-			$this->cache['headers'][ $k ] = $v;
+			$this->cache['headers'][ $k ][] = $v;
 		}
 
 		// Set uncached headers
