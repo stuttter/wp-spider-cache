@@ -7,7 +7,7 @@
  * License:     GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Description: Your friendly neighborhood caching solution for WordPress
- * Version:     5.0.0
+ * Version:     6.0.0
  * Text Domain: wp-spider-cache
  * Domain Path: /wp-spider-cache/assets/lang/
  */
@@ -66,6 +66,24 @@ class WP_Spider_Cache_UI {
 	private $blog_ids = array( 0 );
 
 	/**
+	 * Store the state of drop-in plugins
+	 *
+	 * @since 6.0.0
+	 *
+	 * @var array
+	 */
+	private $drop_ins = array();
+
+	/**
+	 * Store whether a version control system is in use
+	 *
+	 * @since 6.0.0
+	 *
+	 * @var boolean
+	 */
+	private $vcs = false;
+
+	/**
 	 * Nonce ID for getting the cache instance
 	 *
 	 * @since 2.0.0
@@ -100,6 +118,13 @@ class WP_Spider_Cache_UI {
 	 * @var string
 	 */
 	const GET_NONCE = 'sc_get_item';
+
+	/**
+	 * Nonce ID for manipulating drop-in plugins
+	 *
+	 * @since 6.0.0
+	 */
+	const FILE_NONCE = 'sc_drop_in';
 
 	/**
 	 * Initialize the protected singleton
@@ -219,6 +244,63 @@ class WP_Spider_Cache_UI {
 
 		// Return maybe-mapped caps
 		return $caps;
+	}
+
+	/**
+	 * Maybe copy a drop-in plugin based on user request
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param bool $redirect
+	 */
+	private function maybe_copy_drop_in( $redirect = true ) {
+
+		// Bail if not copying or missing nonce
+		if ( empty( $_GET['copy'] ) || empty( $_GET['nonce'] ) ) {
+			return;
+		}
+
+		// Sanitize action
+		$which = sanitize_key( $_GET['copy'] );
+
+		// Check which to copy, or bail
+		if ( 'object' === $which ) {
+			$dest   = WP_CONTENT_DIR . '/object-cache.php';
+			$source = plugin_dir_path( __FILE__ ) . 'wp-spider-cache/drop-ins/object-cache.php';
+		} elseif ( 'output' === $which ) {
+			$dest   = WP_CONTENT_DIR . '/advanced-cache.php';
+			$source = plugin_dir_path( __FILE__ ) . 'wp-spider-cache/drop-ins/advanced-cache.php';
+		} else {
+			return;
+		}
+
+		// Bail if under version control
+		if ( true === $this->vcs ) {
+			return;
+		}
+
+		// Try to copy
+		if ( wp_verify_nonce( $_GET['nonce'], self::FILE_NONCE ) ) {
+			$copied = copy( $source, $dest )
+				? 'success'
+				: 'failed';
+		} else {
+			$copied = 'failed';
+		}
+
+		// Bail if no redirect
+		if ( false === $redirect ) {
+			return;
+		}
+
+		// Assemble the URL
+		$url = add_query_arg( array(
+			'copied' => $copied,
+		), menu_page_url( 'wp-spider-cache', false ) );
+
+		// Redirect
+		wp_safe_redirect( $url );
+		exit();
 	}
 
 	/**
@@ -537,6 +619,29 @@ class WP_Spider_Cache_UI {
 	 * @since 2.0.0
 	 */
 	public function load() {
+
+		// Set drop-ins state
+		$this->drop_ins = array(
+			'output' => file_exists( WP_CONTENT_DIR . '/advanced-cache.php' ),
+			'object' => file_exists( WP_CONTENT_DIR . '/object-cache.php'   )
+		);
+
+		// Include the automatic updater
+		if ( ! class_exists( 'WP_Automatic_Updater' ) ) {
+			include ABSPATH . 'wp-admin/includes/class-wp-automatic-updater.php';
+		}
+
+		/*
+		 * Avoid messing with VCS installs, at least for now.
+		 * Noted: this is not the ideal way to accomplish this.
+		 */
+		if ( class_exists( 'WP_Automatic_Updater' ) ) {
+			$check_vcs = new WP_Automatic_Updater;
+			$this->vcs = $check_vcs->is_vcs_checkout( dirname( __FILE__ ) );
+		}
+
+		// Maybe execute user actions
+		$this->maybe_copy_drop_in( true );
 		$this->maybe_clear_cache_group( true );
 		$this->maybe_clear_user_cache( true );
 	}
@@ -1224,8 +1329,8 @@ class WP_Spider_Cache_UI {
 	public function notice() {
 
 		// Default status & message
-		$status  = 'notice-warning';
-		$message = '';
+		$status   = 'notice-warning';
+		$messages = array();
 
 		// Bail if no notice
 		if ( isset( $_GET['cache_cleared'] ) ) {
@@ -1250,13 +1355,13 @@ class WP_Spider_Cache_UI {
 
 			// Assemble the message
 			if ( 'group' === $type ) {
-				$message = sprintf(
+				$messages[] = sprintf(
 					_n( 'Cleared %s key from cache group: %s', 'Cleared %s keys from cache group: %s', $keys, 'wp-spider-cache' ),
 					'<strong>' . esc_html( $keys  ) . '</strong>',
 					'<strong>' . esc_html( $cache ) . '</strong>'
 				);
 			} elseif ( 'user' === $type ) {
-				$message = sprintf(
+				$messages[] = sprintf(
 					_n( 'Cleared %s key for user ID: %s', 'Cleared %s keys for user ID: %s', $keys, 'wp-spider-cache' ),
 					'<strong>' . esc_html( $keys  ) . '</strong>',
 					'<strong>' . esc_html( $cache ) . '</strong>'
@@ -1264,29 +1369,58 @@ class WP_Spider_Cache_UI {
 			}
 		}
 
-		// No object cache
-		if ( ! function_exists( 'wp_object_cache' ) ) {
-			$message .= sprintf( esc_html__( 'Hmm. It looks like you do not have a persistent object cache installed. Did you forget to copy the drop-in plugins to %s?', 'wp-spider-cache' ), '<code>' . str_replace( ABSPATH, '', WP_CONTENT_DIR ) . '</code>' );
-		} else {
+		// Only show these when not using a version control system
+		if ( false === $this->vcs ) {
 
-			// Get cache engine
-			$cache_engine = wp_object_cache()->engine_class_name;
+			// No object cache
+			if ( empty( $this->drop_ins['object'] ) ) {
 
-			// Missing cache engine extension
-			if ( empty( $cache_engine ) ) {
-				$message .= esc_html__( 'Cache engine name missing from Object Cache class.', 'wp-spider-cache' );
-			} elseif ( ! class_exists( $cache_engine ) ) {
-				$message .= sprintf( esc_html__( 'Please install the %s extension.', 'wp-spider-cache' ), $cache_engine );
+				// Assemble the URL
+				$url = add_query_arg( array(
+					'copy' => 'object',
+					'nonce' => wp_create_nonce( self::FILE_NONCE )
+				), menu_page_url( 'wp-spider-cache', false ) );
+
+				$messages[] = sprintf( esc_html__( 'Persistent object caching is not enabled. %s', 'wp-spider-cache' ), '<a href="' . esc_url( $url ) . '">' . esc_html__( 'Enable?', 'wp-spider-cache' ) . '</a>' );
+
+			// Using drop-in but engine
+			} elseif ( function_exists( 'wp_object_cache' ) ) {
+
+				// Get cache engine
+				$cache_engine = wp_object_cache()->engine_class_name;
+
+				// Missing cache engine extension
+				if ( empty( $cache_engine ) ) {
+					$messages[] = esc_html__( 'Cache engine name missing from Object Cache class.', 'wp-spider-cache' );
+				} elseif ( ! extension_loaded( $cache_engine ) ) {
+					$messages[] = sprintf( esc_html__( 'Please install the %s extension.', 'wp-spider-cache' ), $cache_engine );
+				}
+
+				// No output cache
+				if ( empty( $this->drop_ins['output'] ) ) {
+
+					// Assemble the URL
+					$url = add_query_arg( array(
+						'copy'  => 'output',
+						'nonce' => wp_create_nonce( self::FILE_NONCE )
+					), menu_page_url( 'wp-spider-cache', false ) );
+
+					$messages[] = sprintf( esc_html__( 'Page caching is not enabled. %s', 'wp-spider-cache' ), '<a href="' . esc_url( $url ) . '">' . esc_html__( 'Enable?', 'wp-spider-cache' ) . '</a>' );
+
+				// Using drop-in but WP_CACHE not set
+				} elseif ( ! defined( 'WP_CACHE' ) || ( false === WP_CACHE ) ) {
+					$messages[] = sprintf( esc_html__( 'Please add %s to your %s to enable page caching.', 'wp-spider-cache' ), "<code>define( 'WP_CACHE', true );</code>", '<code>wp-config.php</code>' );
+				}
 			}
 		}
 
 		// Bail if no message
-		if ( empty( $message ) ) {
+		if ( empty( $messages ) ) {
 			return;
 		} ?>
 
 		<div id="message" class="notice <?php echo esc_attr( $status ); ?>">
-			<p><?php echo $message; // May contain HTML ?></p>
+			<p><?php echo implode( '</p><p>', $messages ); // May contain HTML ?></p>
 		</div>
 
 		<?php
