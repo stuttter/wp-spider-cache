@@ -4,7 +4,7 @@
  * Plugin name: Spider-Cache
  * Plugin URI:  https://wordpress.org/plugins/wp-spider-cache/
  * Description: Fully rendered pages stored in & served from persistent cache.
- * Version:     2.2.0 2016-02-18
+ * Version:     6.0.0 2017-05-20
  */
 
 // Exit if accessed directly
