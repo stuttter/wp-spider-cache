@@ -3,7 +3,7 @@ Contributors: johnjamesjacoby, stuttter
 Tags: cache, object, output, admin, memcache, memcached
 Requires at least: 4.7
 Tested up to: 4.8
-Stable tag: 5.0.0
+Stable tag: 6.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=9Q4F4EL5YJ62J
@@ -135,6 +135,9 @@ If you require immediate assistance, please consider a paid support subscription
 http://github.com/stuttter/wp-spider-cache
 
 == Changelog ==
+
+= [6.0.0] - 2017-05-20 =
+* UI for copying drop-ins
 
 = [5.0.0] - 2017-04-03 =
 * Updated signup and signupmeta global cache groups
