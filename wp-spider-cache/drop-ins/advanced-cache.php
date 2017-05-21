@@ -3,7 +3,7 @@
 /**
  * Plugin name: Spider-Cache
  * Plugin URI:  https://wordpress.org/plugins/wp-spider-cache/
- * Description: Fully rendered pages stored in & served from Memcached.
+ * Description: Fully rendered pages stored in & served from persistent cache.
  * Version:     2.2.0 2016-02-18
  */
 
