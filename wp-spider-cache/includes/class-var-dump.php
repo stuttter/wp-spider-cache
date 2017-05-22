@@ -129,13 +129,13 @@ class WP_Spider_Cache_Var_Dump {
 		$class = '';
 		$scope = '';
 
-		// prepare the parent class name
-		if ( isset( $matches[ 'class' ] ) && !empty( $matches[ 'class' ] ) ) {
+		// Prepare the parent class name
+		if ( ! empty( $matches[ 'class' ] ) ) {
 			$class = ':<span style="color: #4D5D94;">"' . esc_html( $matches[ 'class' ] ) . '"</span>';
 		}
 
-		// prepare the scope indicator
-		if ( isset( $matches[ 'scope' ] ) && !empty( $matches[ 'scope' ] ) ) {
+		// Prepare the scope indicator
+		if ( ! empty( $matches[ 'scope' ] ) ) {
 			$scope = ':<span style="color: #666666;">' . esc_html( $matches[ 'scope' ] ) . '</span>';
 		}
 
