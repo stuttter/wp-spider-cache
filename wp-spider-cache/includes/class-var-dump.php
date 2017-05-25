@@ -45,59 +45,108 @@ class WP_Spider_Cache_Var_Dump {
 	 */
 	public static function dump( $variable = false ) {
 
-		// Holds checks for var_dump() viability
-		$no_dump = array();
-
 		// var_dump is disabled
 		$disabled = (array) explode( ',', ini_get( 'disable_functions' ) );
-		if ( in_array( 'var_dump', $disabled, true ) ) {
-			$no_dump['disabled'] = true;
+		$can_dump = ! in_array( 'var_dump', $disabled, true );
+
+		// No dumping, so use plain serialized output
+		$format = ( true === $can_dump )
+			? ! ( ini_get( 'xdebug.overload_var_dump' ) && ini_get( 'html_errors' ) )
+			: false;
+
+		// Always trim each variable item of excess whitespace
+		$variable = map_deep( $variable, array( __CLASS__, 'maybe_trim' ) );
+
+		// Already using pretty var_dump()
+		if ( true === $format ) {
+			$variable = map_deep( $variable, array( __CLASS__, 'maybe_escape' ) );
 		}
 
-		// Bail early if var_dump is disabled
-		if ( ! empty( $no_dump ) ) {
-			echo '<pre>' . esc_html( maybe_serialize( $variable ) ) . '</pre>';
-			return;
-		}
+		// Format output
+		$output = ( true === $can_dump )
+			? self::format( $variable, $format )
+			: esc_html( $variable );
+
+		// Leave unescaped
+		echo "<pre>{$output}</pre>";
+	}
+
+	/**
+	 * Internally format the variable being dumped.
+	 *
+	 * @since 0.1.0
+	 *
+	 * @param string  $var
+	 * @param boolean $format
+	 *
+	 * @return string
+	 */
+	private static function format( $var = '', $format = false ) {
 
 		// Start the output buffering
 		ob_start();
 
 		// Generate the output
-		var_dump( $variable );
+		var_dump( $var );
 
-		// Get the output
-		$output = ob_get_clean();
+		// Get var_dump output from the buffer
+		$buffer = ob_get_clean();
 
 		// No new lines after array/object items
-		$output = str_replace( "=>\n", '=>', $output );
+		$output = str_replace( "=>\n", '=>', $buffer );
 
 		// No stray whitespace before type castings
 		$output = preg_replace( '/=>\s+/', '=> ', $output );
 
-		// Already using pretty var_dump()
-		if ( ini_get( 'xdebug.overload_var_dump' ) && ini_get( 'html_errors' ) ) {
-			echo '<pre>' . $output . '</pre>';
-			return;
+		// Handle formatting on our own
+		if ( true === $format ) {
+
+			// Regex to wrap words with HTML
+			$maps = array(
+				'string'    => '/(string\((?P<length>\d+)\)) (?P<value>\"(?<!\\\).*\")/i',
+				'array'     => '/\[\"(?P<key>.+)\"(?:\:\"(?P<class>[a-z0-9_\\\]+)\")?(?:\:(?P<scope>public|protected|private))?\]=>/Ui',
+				'countable' => '/(?P<type>array|int|string)\((?P<count>\d+)\)/',
+				'resource'  => '/resource\((?P<count>\d+)\) of type \((?P<class>[a-z0-9_\\\]+)\)/',
+				'bool'      => '/bool\((?P<value>true|false)\)/',
+				'float'     => '/float\((?P<value>[0-9\.]+)\)/',
+				'object'    => '/object\((?P<class>[a-z_\\\]+)\)\#(?P<id>\d+) \((?P<count>\d+)\)/i',
+			);
+
+			// Loop through maps & replace with callback
+			foreach ( $maps as $function => $pattern ) {
+				$output = preg_replace_callback( $pattern, array( __CLASS__, 'process_' . $function ), $output );
+			}
 		}
 
-		$maps = array(
-			'string'    => '/(string\((?P<length>\d+)\)) (?P<value>\"(?<!\\\).*\")/i',
-			'array'     => '/\[\"(?P<key>.+)\"(?:\:\"(?P<class>[a-z0-9_\\\]+)\")?(?:\:(?P<scope>public|protected|private))?\]=>/Ui',
-			'countable' => '/(?P<type>array|int|string)\((?P<count>\d+)\)/',
-			'resource'  => '/resource\((?P<count>\d+)\) of type \((?P<class>[a-z0-9_\\\]+)\)/',
-			'bool'      => '/bool\((?P<value>true|false)\)/',
-			'float'     => '/float\((?P<value>[0-9\.]+)\)/',
-			'object'    => '/object\((?P<class>[a-z_\\\]+)\)\#(?P<id>\d+) \((?P<count>\d+)\)/i',
-		);
+		return $output;
+	}
 
-		// Loop through maps & replace with callback
-		foreach ( $maps as $function => $pattern ) {
-			$output = preg_replace_callback( $pattern, array( 'self', 'process_' . $function ), $output );
-		}
+	/**
+	 * Maybe trim spaces off of a value.
+	 *
+	 * @since 0.1.0
+	 *
+	 * @param mixed $value
+	 * @return mixed
+	 */
+	public static function maybe_trim( $value ) {
+		return is_string( $value )
+			? trim( $value )
+			: $value;
+	}
 
-		// HTML - Do not escape here
-		echo '<pre>' . $output . '</pre>';
+	/**
+	 * Maybe escape a value.
+	 *
+	 * @since 0.1.0
+	 *
+	 * @param mixed $value
+	 * @return mixed
+	 */
+	public static function maybe_escape( $value ) {
+		return is_int( $value )
+			? (int) $value
+			: esc_html( $value );
 	}
 
 	/**
@@ -109,9 +158,15 @@ class WP_Spider_Cache_Var_Dump {
 	 * @return string
 	 */
 	private static function process_string( array $matches ) {
+
+		// Lengthy string protection
+		if ( strlen( $matches[ 'value' ] ) > 10000 ) {
+			$matches[ 'value' ] = 'Too Long';
+		}
+
 		$length = '<span style="color: #AA0000;">string</span>(<span style="color: #1287DB;">' . esc_html( $matches[ 'length' ] ) . '</span>)';
-		$value  = '<span style="color: #6B6E6E;">' . esc_html( $matches[ 'value' ] ) . '</span>';
-		return $length . $value;
+		$value  = '<span style="color: #6B6EBE;">' . esc_html( $matches[ 'value' ] ) . '</span>';
+		return $length . ' ' . $value;
 	}
 
 	/**
