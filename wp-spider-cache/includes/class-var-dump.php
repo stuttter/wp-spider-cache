@@ -62,10 +62,13 @@ class WP_Spider_Cache_Var_Dump {
 			$variable = map_deep( $variable, array( __CLASS__, 'maybe_escape' ) );
 		}
 
+		// Always truncate strings to 500 characters
+		$variable = map_deep( $variable, array( __CLASS__, 'maybe_truncate' ) );
+
 		// Format output
 		$output = ( true === $can_dump )
 			? self::format( $variable, $format )
-			: esc_html( $variable );
+			: esc_html( maybe_unserialize( $variable ) );
 
 		// Leave unescaped
 		echo "<pre>{$output}</pre>";
@@ -150,6 +153,20 @@ class WP_Spider_Cache_Var_Dump {
 	}
 
 	/**
+	 * Maybe truncate a value.
+	 *
+	 * @since 0.1.0
+	 *
+	 * @param mixed $value
+	 * @return mixed
+	 */
+	public static function maybe_truncate( $value ) {
+		return is_string( $value ) && ( strlen( $value ) > 500 )
+			? substr( $value, 0, 497 ) . '...'
+			: $value;
+	}
+
+	/**
 	 * Process strings
 	 *
 	 * @since 0.1.0
@@ -158,12 +175,6 @@ class WP_Spider_Cache_Var_Dump {
 	 * @return string
 	 */
 	private static function process_string( array $matches ) {
-
-		// Lengthy string protection
-		if ( strlen( $matches[ 'value' ] ) > 10000 ) {
-			$matches[ 'value' ] = 'Too Long';
-		}
-
 		$length = '<span style="color: #AA0000;">string</span>(<span style="color: #1287DB;">' . esc_html( $matches[ 'length' ] ) . '</span>)';
 		$value  = '<span style="color: #6B6EBE;">' . esc_html( $matches[ 'value' ] ) . '</span>';
 		return $length . ' ' . $value;
