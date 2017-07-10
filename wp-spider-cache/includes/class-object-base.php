@@ -262,6 +262,12 @@ class WP_Spider_Cache_Object_Base {
 	 * @since 2.2.0
 	 */
 	private function set_engine() {
+
+		// Bail if engine not found
+		if ( ! class_exists( $this->engine_class_name ) ) {
+			return;
+		}
+
 		$this->engine = new $this->engine_class_name;
 	}
 
