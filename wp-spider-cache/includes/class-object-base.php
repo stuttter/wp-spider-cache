@@ -1790,6 +1790,7 @@ class WP_Spider_Cache_Object_Base {
 	 * @return array
 	 */
 	public function buddypress_networks( $keys = array(), $key = '', $group = '' ) {
+		global $current_site;
 
 		// BuddyPress multi-network namespace
 		if ( function_exists( 'is_multisite' ) && is_multisite() ) {
@@ -1812,7 +1813,7 @@ class WP_Spider_Cache_Object_Base {
 				}
 
 				// Site ID prefix, community, group, and key
-				$new_keys['prefix']    = get_current_site()->blog_id;
+				$new_keys['prefix']    = $current_site->blog_id;
 				$new_keys['community'] = 'community';
 				$new_keys['group']     = $group;
 				$new_keys['key']       = $key;
