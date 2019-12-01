@@ -339,10 +339,14 @@ class WP_Spider_Cache_Object_Base {
 		$result = false;
 
 		/**
-		 * Ensuring that wp_suspend_cache_addition is defined before calling, because sometimes an advanced-cache.php
-		 * file will load object-cache.php before wp-includes/functions.php is loaded. In those cases, if wp_cache_add
-		 * is called in advanced-cache.php before any more of WordPress is loaded, we get a fatal error because
-		 * wp_suspend_cache_addition will not be defined until wp-includes/functions.php is loaded.
+		 * Ensuring that wp_suspend_cache_addition is defined before calling,
+		 * because sometimes an advanced-cache.php file will load object-cache.php
+		 * before wp-includes/functions.php is loaded.
+		 *
+		 * In those cases, if wp_cache_add() is called in advanced-cache.php
+		 * before any more of WordPress is loaded, we get a fatal error because
+		 * wp_suspend_cache_addition() will not be defined until
+		 * wp-includes/functions.php is loaded.
 		 */
 		if ( function_exists( 'wp_suspend_cache_addition' ) && wp_suspend_cache_addition() ) {
 			return $result;

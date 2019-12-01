@@ -152,7 +152,18 @@ class WP_Spider_Cache_Object extends WP_Spider_Cache_Object_Base {
 	 * @return bool False if cache key and group already exist, true on success
 	 */
 	public function add( $key, $value, $group = 'default', $expiration = 0, $server_key = '', $byKey = false ) {
-		if ( wp_suspend_cache_addition() ) {
+
+		/**
+		 * Ensuring that wp_suspend_cache_addition is defined before calling,
+		 * because sometimes an advanced-cache.php file will load object-cache.php
+		 * before wp-includes/functions.php is loaded.
+		 *
+		 * In those cases, if wp_cache_add() is called in advanced-cache.php
+		 * before any more of WordPress is loaded, we get a fatal error because
+		 * wp_suspend_cache_addition() will not be defined until
+		 * wp-includes/functions.php is loaded.
+		 */
+		if ( function_exists( 'wp_suspend_cache_addition' ) && wp_suspend_cache_addition() ) {
 			return false;
 		}
 
