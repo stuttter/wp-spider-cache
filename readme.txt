@@ -1,7 +1,7 @@
 === WP Spider Cache ===
 Author:            Triple J Software, Inc.
 Author URI:        https://jjj.software
-Donate link:       https://buy.stripe.com/5kA4ghd8o2GC3pC8ww
+Donate link:       https://buy.stripe.com/7sI3cd2tK1Cy2lydQR
 Plugin URI:        https://wordpress.org/plugins/wp-spider-cache
 License URI:       https://www.gnu.org/licenses/gpl-2.0.html
 License:           GPLv2 or later
