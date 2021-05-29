@@ -1,15 +1,19 @@
 <?php
+
 /**
- * Plugin Name: WP Spider Cache
- * Plugin URI:  https://wordpress.org/plugins/wp-spider-cache/
- * Author:      John James Jacoby
- * Author URI:  https://profiles.wordpress.org/johnjamesjacoby/
- * License:     GPLv2 or later
- * License URI: https://www.gnu.org/licenses/gpl-2.0.html
- * Description: Your friendly neighborhood caching solution for WordPress
- * Version:     6.0.0
- * Text Domain: wp-spider-cache
- * Domain Path: /wp-spider-cache/assets/lang/
+ * Plugin Name:       WP Spider Cache
+ * Description:       Your friendly neighborhood caching solution for WordPress
+ * Plugin URI:        https://wordpress.org/plugins/wp-spider-cache/
+ * Author:            Triple J Software, Inc.
+ * Author URI:        https://jjj.software
+ * License:           GPLv2 or later
+ * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain:       wp-spider-cache
+ * Domain Path:       /wp-spider-cache/includes/languages
+ * Requires at least: 5.2
+ * Requires PHP:      7.2
+ * Tested up to:      5.8
+ * Version:           6.0.1
  */
 
 // Exit if accessed directly

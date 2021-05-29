@@ -1,18 +1,22 @@
 === WP Spider Cache ===
-Contributors: johnjamesjacoby, stuttter
-Tags: cache, object, output, admin, memcache, memcached
-Requires at least: 4.7
-Tested up to: 4.8
-Stable tag: 6.0.0
-License: GPLv2 or later
-License URI: https://www.gnu.org/licenses/gpl-2.0.html
-Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=9Q4F4EL5YJ62J
+Author:            Triple J Software, Inc.
+Author URI:        https://jjj.software
+Donate link:       https://buy.stripe.com/5kA4ghd8o2GC3pC8ww
+Plugin URI:        https://wordpress.org/plugins/wp-spider-cache
+License URI:       https://www.gnu.org/licenses/gpl-2.0.html
+License:           GPLv2 or later
+Contributors:      johnjamesjacoby
+Tags:              cache, memcache, memcached, object, output
+Requires PHP:      7.2
+Requires at least: 5.2
+Tested up to:      5.8
+Stable tag:        6.0.1
 
 == Description ==
 
 WP Spider Cache is your friendly neighborhood caching solution for WordPress. It uses Memcached to store both objects & page output.
 
-It's heroic like Batcache & Super Cache, but younger, humbler, and a born web-slinger.
+It is heroic like Batcache & Super Cache, but younger, faster, and a natural web-slinger.
 
 It comes with:
 
@@ -25,16 +29,10 @@ It comes with:
 
 Admin:
 
-* [WP Admin Menu Plus](https://wordpress.org/plugins/wp-admin-menu-plus/ "Additional styling for WordPress administration menus.")
 * [WP Chosen](https://wordpress.org/plugins/wp-chosen/ "Make long, unwieldy select boxes much more user-friendly.")
 * [WP Comment Humility](https://wordpress.org/plugins/wp-comment-humility/ "Move the "Comments" menu underneath 'Posts'.")
 * [WP Pretty Filters](https://wordpress.org/plugins/wp-pretty-filters/ "Make all filters match the Media & Attachments interface.")
 * [WP Reset Filters](https://wordpress.org/plugins/wp-reset-filters/ "Adds a "Reset" button to all admin area filters.")
-
-Events:
-
-* [WP Event Calendar](https://wordpress.org/plugins/wp-event-calendar/ "The best way to manage events in WordPress.")
-* [WP Event Venues](https://wordpress.org/plugins/wp-event-venues/ "Add reusable venues to WP Event Calendar.")
 
 Media:
 
@@ -42,7 +40,6 @@ Media:
 
 Multisite:
 
-* [WP Blog Meta](https://wordpress.org/plugins/wp-blog-meta/ "A global, joinable meta-data table for WordPress Multisite.")
 * [WP Multi Network](https://wordpress.org/plugins/wp-multi-network/ "Create many networks of many sites with any domains.")
 * [WP Site Aliases](https://wordpress.org/plugins/wp-site-aliases/ "Create many networks of many sites with any domains.")
 
@@ -74,9 +71,9 @@ Users:
 * [WP User Avatars](https://wordpress.org/plugins/wp-user-avatars/ "Allow users to upload avatars or choose them from your media library.")
 * [WP User Groups](https://wordpress.org/plugins/wp-user-groups/ "Group users together with taxonomies & terms.")
 * [WP User Parents](https://wordpress.org/plugins/wp-user-parents/ "A user hierarchy for WordPress user accounts.")
-* [WP User Parents](https://wordpress.org/plugins/wp-user-preferences/ "Cascading user options with intelligent defaults.")
+* [WP User Preferences](https://wordpress.org/plugins/wp-user-preferences/ "Cascading user options with intelligent defaults.")
 * [WP User Profiles](https://wordpress.org/plugins/wp-user-profiles/ "A sophisticated way to edit users in WordPress.")
-* [WP User Signups](https://wordpress.org/plugins/wp-user-signups/ "An interface for managing multisite user signups.")
+* [WP User Signups](https://wordpress.org/plugins/wp-user-signups/ "An interface for managing user signups.")
 * [WP User Tagline](https://wordpress.org/plugins/wp-user-tagline/ "Allow users to give themselves unique taglines.")
 * [WP User Title](https://wordpress.org/plugins/wp-user-title/ "Allow users to give themselves unique titles.")
 
@@ -114,27 +111,21 @@ Yes. Yes. Yes.
 
 = What other plugins has this been tested with? =
 
-* EasyDigitalDownloads
+* Easy Digital Downloads
 * Jetpack
 * Keyring
-* Stuttter plugins
 * User Switching
 * WooCommerce
 
 = Where can I get support? =
 
-This plugin is free for anyone to use.
-
-[Community support](https://wordpress.org/support/plugin/wp-spider-cache) is provided for free by existing users.
-[Priority support](https://chat.flox.io/support/channels/wp-spider-cache) is available to paying customers & volunteer contributors.
-
-If you require immediate assistance, please consider a paid support subscription.
-
-= Where can I find documentation? =
-
-http://github.com/stuttter/wp-spider-cache
+* Community: https://wordpress.org/support/plugin/wp-spider-cache
+* Development: https://github.com/stuttter/wp-spider-cache/discussions
 
 == Changelog ==
+
+= [6.0.1] - 2021-05-29 =
+* Update author info
 
 = [6.0.0] - 2017-05-20 =
 * UI for copying drop-ins

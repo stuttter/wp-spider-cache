@@ -15,6 +15,7 @@ It comes with:
 * Download and install using the built in WordPress plugin installer.
 * Copy contents of `drop-ins` to your `wp-content` directory
 * Activate in the "Plugins" area of your `wp-admin` by clicking the "Activate" link.
+* Consider sponsoring future development by clicking "Sponsor".
 * No further setup or configuration is necessary.
 
 # FAQ
@@ -49,11 +50,11 @@ This plugin is largely inspired by:
 
 This plugin is free for anyone to use.
 
-* [Community support](https://wordpress.org/support/plugin/wp-spider-cache) is provided for free by existing users.
-* [Priority support](https://chat.flox.io/support/channels/wp-spider-cache) is available to paying customers & volunteer contributors.
+* Community: https://wordpress.org/support/plugin/wp-spider-cache
+* Development: https://github.com/stuttter/wp-spider-cache/discussions
 
 If you require immediate assistance, please consider a paid support subscription.
 
-### How can I help?
+### Contributing
 
-Please [open a new issue](/pull/new/master) to discuss whether the feature is a good fit for the project. Once you've decided to work on a pull request, please include [functional tests](https://wp-cli.org/docs/pull-requests/#functional-tests) and follow the [WordPress Coding Standards](http://make.wordpress.org/core/handbook/coding-standards/).
+Please [open a new issue](/pull/new/master) to discuss whether the feature is a good fit for the project. Once you've decided to work on a pull request, please follow the [WordPress Coding Standards](http://make.wordpress.org/core/handbook/coding-standards/).

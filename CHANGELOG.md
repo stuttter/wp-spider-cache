@@ -1,3 +1,9 @@
+## [6.0.1] - 2021-05-29
+* Update author info
+
+## [6.0.0] - 2017-05-20
+* UI for copying drop-ins
+
 ## [5.0.0] - 2017-04-03
 * Updated signup and signupmeta global cache groups
 
