@@ -498,9 +498,7 @@ class WP_Spider_Cache_Object extends WP_Spider_Cache_Object_Base {
 	 */
 	public function __construct() {
 		$this->multisite = is_multisite();
-		$this->blog_prefix =  $this->multisite
-			? get_current_blog_id() . ':'
-			: '';
+		$this->switch_to_blog( $GLOBALS['blog_id'] );
 
 		/**
 		 * @todo This should be moved to the PHP4 style constructor, PHP5
