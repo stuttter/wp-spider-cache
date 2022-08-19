@@ -398,7 +398,7 @@ class WP_Spider_Cache_Output {
 	 *
 	 * @param string $function
 	 */
-	protected function add_variant( $function = '' ) {
+	public function add_variant( $function = '' ) {
 		$key = md5( $function );
 		$this->vary[ $key ] = $function;
 	}
