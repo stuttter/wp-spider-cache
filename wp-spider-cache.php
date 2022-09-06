@@ -42,7 +42,7 @@ class WP_Spider_Cache_UI {
 	 *
 	 * @var string
 	 */
-	private $asset_version = '201704030001';
+	private $asset_version = '202208210001';
 
 	/**
 	 * Custom cache key separator
@@ -1381,7 +1381,7 @@ class WP_Spider_Cache_UI {
 
 				// Assemble the URL
 				$url = add_query_arg( array(
-					'copy' => 'object',
+					'copy'  => 'object',
 					'nonce' => wp_create_nonce( self::FILE_NONCE )
 				), menu_page_url( 'wp-spider-cache', false ) );
 

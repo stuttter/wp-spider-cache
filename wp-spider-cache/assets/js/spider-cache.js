@@ -83,7 +83,7 @@
 					setTimeout( function() {
 						if ( data ) {
 							$instanceStore.html( data );
-							$refreshInstance.show();
+							searchTable( $searchResults );
 						} else {
 							$instanceStore.html( WP_Spider_Cache.no_results );
 						}
@@ -91,7 +91,10 @@
 					}, 500 );
 				},
 				error : function () {
-					$refreshInstance.prop( 'disabled', false );
+					setTimeout( function() {
+						$instanceStore.html( WP_Spider_Cache.no_results );
+						$refreshInstance.prop( 'disabled', false );
+					}, 500 );
 				}
 			} );
 		}
@@ -164,6 +167,7 @@
 						maybe_remove_item( e, elem );
 					}
 				} );
+
 				return false;
 			} )
 			.on( 'click', '.sc-view-item', function ( e ) {
@@ -180,7 +184,9 @@
 						elem.parents( 'tr' ).removeClass( 'row-updating' );
 					}
 				} );
+
 				return false;
 			} );
+
 	} );
 }( jQuery ) );
