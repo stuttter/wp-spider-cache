@@ -747,10 +747,10 @@ class WP_Spider_Cache_UI {
 		wp_cache_connect( $server, $port );
 
 		// Get slabs from extended stats
-		$slabs = wp_cache_get_extended_stats( 'slabs' );
+		$stats = wp_cache_get_extended_stats( 'slabs' );
 
 		// Loop through servers to get slabs
-		foreach ( $slabs as $server => $slabs ) {
+		foreach ( $stats as $server => $slabs ) {
 
 			// Loop through slabs to target single slabs
 			foreach ( array_keys( $slabs ) as $slab_id ) {
