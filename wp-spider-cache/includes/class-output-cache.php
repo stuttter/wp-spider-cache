@@ -159,6 +159,83 @@ class WP_Spider_Cache_Output {
 	private $do = false;
 
 	/**
+	 * The request count
+	 *
+	 * @var int
+	 */
+	private $requests = 0;
+
+	/**
+	 * The permalink
+	 *
+	 * @var string
+	 */
+	private $permalink = '';
+
+	/**
+	 * The URL key
+	 *
+	 * @var string
+	 */
+	private $url_key = '';
+
+	/**
+	 * The URL version
+	 *
+	 * @var string
+	 */
+	private $url_version = '';
+
+	/**
+	 * The status header
+	 *
+	 * @var string
+	 */
+	private $status_header = 'HTTP/1.1 200 OK';
+
+	/**
+	 * The status code
+	 *
+	 * @var int
+	 */
+	private $status_code = 200;
+
+	/**
+	 * The cache data
+	 *
+	 * @var array
+	 */
+	private $cache = array();
+
+	/**
+	 * The key data
+	 *
+	 * @var array
+	 */
+	private $keys = array();
+
+	/**
+	 * The cache key
+	 *
+	 * @var string
+	 */
+	private $key = '';
+
+	/**
+	 * The request cache key
+	 *
+	 * @var string
+	 */
+	private $req_key = '';
+
+	/**
+	 * Setup the query attribute if a query string exists
+	 *
+	 * @since 6.0.0
+	 */
+	private $query = array();
+
+	/**
 	 * Main output cache constructor
 	 *
 	 * @since 2.0.0
@@ -602,8 +679,8 @@ HTML;
 	private function setup_keys() {
 
 		// Get the path
-		$path = ( $this->pos = strpos( $_SERVER['REQUEST_URI'], '?' ) )
-			? substr( $_SERVER['REQUEST_URI'], 0, $this->pos )
+		$path = ( $_pos = strpos( $_SERVER['REQUEST_URI'], '?' ) )
+			? substr( $_SERVER['REQUEST_URI'], 0, $_pos )
 			: $_SERVER['REQUEST_URI'];
 
 		// Setup keys
