@@ -215,7 +215,7 @@ class WP_Spider_Cache_Output {
 	private $keys = array();
 
 	/**
-	 * The cache key
+	 * The key
 	 *
 	 * @var string
 	 */
