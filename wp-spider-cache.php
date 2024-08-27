@@ -744,7 +744,7 @@ class WP_Spider_Cache_UI {
 		$old_errors = error_reporting( 0 );
 
 		// Connect to cache server
-		wp_cache_connect( $server, $port );
+		$connect = wp_cache_connect( $server, $port );
 
 		// Get slabs from extended stats
 		$stats = wp_cache_get_extended_stats( 'slabs' );
