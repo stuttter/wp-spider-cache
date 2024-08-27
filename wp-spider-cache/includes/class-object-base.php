@@ -24,21 +24,21 @@ class WP_Spider_Cache_Object_Base {
 	/**
 	 * Holds the cache engine class name.
 	 *
-	 * @var Memcache, Redis, etc...
+	 * @var string Memcache, Redis, etc...
 	 */
 	public $engine_class_name = '';
 
 	/**
 	 * Holds the cache daemon class name.
 	 *
-	 * @var Memcached, Redis, etc...
+	 * @var string "Memcached", "Redis", etc...
 	 */
 	public $daemon_class_name = '';
 
 	/**
 	 * Holds the cache servers.
 	 *
-	 * @var Memcached
+	 * @var string "Memcached"
 	 */
 	public $servers_global = '';
 
@@ -52,14 +52,14 @@ class WP_Spider_Cache_Object_Base {
 	/**
 	 * Holds the cache engine.
 	 *
-	 * @var Memcache, Redis, etc...
+	 * @var object Memcache, Redis, etc...
 	 */
 	protected $engine;
 
 	/**
 	 * Holds the cache daemon.
 	 *
-	 * @var Memcached, Redis, etc...
+	 * @var object Memcached, Redis, etc...
 	 */
 	protected $daemon;
 
@@ -207,6 +207,20 @@ class WP_Spider_Cache_Object_Base {
 	public $cache_key_separator = ':';
 
 	/**
+	 * Thirty days in seconds
+	 *
+	 * @var int
+	 */
+	private $thirty_days = 0;
+
+	/**
+	 * Return value from time()
+	 *
+	 * @var int
+	 */
+	private $now = 0;
+
+	/**
 	 * Instantiate the class.
 	 *
 	 * Instantiates the class and returns adds the servers specified
@@ -250,10 +264,13 @@ class WP_Spider_Cache_Object_Base {
 			return;
 		}
 
+		// Set the class name as a variable to make it callable
+		$class_name = $this->daemon_class_name;
+
 		// Set the daemon
 		$this->daemon = ( is_null( $persistent_id ) || ! is_string( $persistent_id ) )
 			? new $this->daemon_class_name
-			: $this->daemon_class_name( $persistent_id );
+			: $class_name( $persistent_id );
 	}
 
 	/**
