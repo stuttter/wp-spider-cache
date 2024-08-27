@@ -100,26 +100,28 @@ class WP_Spider_Cache_Object_Base {
 
 		// Users
 		'users',
-		'userlogins',
-		'usermeta',
+		'user-queries',
 		'user_meta',
 		'useremail',
+		'userlogins',
 		'userslugs',
 
 		// Networks & Sites
-		'site-transient',
+		'sites',
+		'site-details',
 		'site-options',
+		'site-queries',
+		'site-transient',
+		'blog-id-cache',
 		'blog-lookup',
 		'blog-details',
+		'blog_meta',
+		'networks',
+		'network-queries',
 
 		// Posts
 		'rss',
-		'global-posts',
-
-		// New networks & Sites
-		'networks',
-		'sites',
-		'site-details'
+		'global-posts'
 	);
 
 	/**
@@ -140,9 +142,6 @@ class WP_Spider_Cache_Object_Base {
 		// Blog Aliases
 		'blog-aliases',
 		'blog_alias_meta',
-
-		// Blog Meta
-		'blog_meta',
 
 		// Network Meta
 		'site_meta',
