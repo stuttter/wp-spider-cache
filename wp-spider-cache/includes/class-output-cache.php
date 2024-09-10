@@ -508,12 +508,12 @@ class WP_Spider_Cache_Output {
 		// Evaluate
 		foreach ( $dimensions as $key => $function ) {
 
-			// Callable (Required in PHP7.2)
+			// Callable (PHP7.2 and higher)
 			if ( is_callable( $function ) ) {
 				$this->keys[ $key ] = $function();
 
-			// Raw code, so try to evaluate it
-			} else {
+			// Raw code (Deprecated in PHP8.0)
+			} elseif ( function_exists( 'create_function' ) ) {
 				$created_function   = create_function( '', $function );
 				$this->keys[ $key ] = $created_function();
 			}
