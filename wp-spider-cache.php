@@ -641,7 +641,7 @@ class WP_Spider_Cache_UI {
 		 */
 		if ( class_exists( 'WP_Automatic_Updater' ) ) {
 			$check_vcs = new WP_Automatic_Updater;
-			$this->vcs = $check_vcs->is_vcs_checkout( dirname( __FILE__ ) );
+			$this->vcs = $check_vcs->is_vcs_checkout( __DIR__ );
 		}
 
 		// Maybe execute user actions
@@ -1481,8 +1481,8 @@ class WP_Spider_Cache_UI {
 		$url_key = md5( $url );
 
 		// Get cache objects
-		$output_cache = wp_output_cache_init();
-		$object_cache = wp_object_cache_init();
+		$output_cache = wp_output_cache();
+		$object_cache = wp_object_cache();
 
 		// Bail if either cache is missing
 		if ( empty( $output_cache ) || empty( $object_cache ) ) {
