@@ -21,5 +21,5 @@ require_once WP_PLUGIN_DIR . '/wp-spider-cache/wp-spider-cache/includes/function
 // Initialize the caches
 if ( ! wp_skip_output_cache() ) {
 	wp_object_cache_init();
-	wp_output_cache_init();	
+	wp_output_cache_init();
 }
