@@ -25,21 +25,21 @@ class WP_Spider_Cache_Object extends WP_Spider_Cache_Object_Base {
 	/**
 	 * Holds the cache engine class name.
 	 *
-	 * @var Memcache
+	 * @var string
 	 */
 	public $engine_class_name = 'Memcache';
 
 	/**
 	 * Holds the cache daemon class name.
 	 *
-	 * @var Memcached
+	 * @var string
 	 */
 	public $daemon_class_name = 'Memcached';
 
 	/**
 	 * Holds the cache servers.
 	 *
-	 * @var Memcached
+	 * @var string
 	 */
 	public $servers_global = 'memcached_servers';
 
@@ -67,8 +67,9 @@ class WP_Spider_Cache_Object extends WP_Spider_Cache_Object_Base {
 
 		// Set daemon flags
 		if ( class_exists( $this->daemon_class_name ) ) {
-			$this->success_code   = Memcached::RES_SUCCESS;
-			$this->preserve_order = Memcached::GET_PRESERVE_ORDER;
+			$class_name           = $this->daemon_class_name;
+			$this->success_code   = $class_name::RES_SUCCESS;
+			$this->preserve_order = $class_name::GET_PRESERVE_ORDER;
 		}
 	}
 }
