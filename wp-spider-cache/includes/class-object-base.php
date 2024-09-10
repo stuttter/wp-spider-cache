@@ -24,7 +24,7 @@ class WP_Spider_Cache_Object_Base {
 	/**
 	 * Holds the cache engine class name.
 	 *
-	 * @var string Memcache, Redis, etc...
+	 * @var string "Memcache", "Redis", etc...
 	 */
 	public $engine_class_name = '';
 
