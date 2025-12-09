@@ -921,8 +921,17 @@ class WP_Spider_Cache_UI {
 				$parts = array_slice( $parts, $offset );
 			}
 
+			// Skip if not enough parts after offset
+			if ( empty( $parts ) ) {
+				continue;
+			}
+
 			// Multisite means first part is numeric
 			if ( is_numeric( $parts[ 0 ] ) ) {
+				// Skip if missing group part
+				if ( ! isset( $parts[ 1 ] ) ) {
+					continue;
+				}
 				$blog_id = (int) $parts[ 0 ];
 				$group   = $parts[ 1 ];
 				$global  = false;
