@@ -12,6 +12,8 @@ Requires at least: 5.2
 Tested up to:      5.8
 Stable tag:        6.0.1
 
+Your friendly neighborhood Memcached solution for WordPress objects and pages.
+
 == Description ==
 
 WP Spider Cache is your friendly neighborhood caching solution for WordPress. It uses Memcached to store both objects & page output.
