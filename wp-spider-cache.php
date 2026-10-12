@@ -891,19 +891,24 @@ class WP_Spider_Cache_UI {
 
 		// Set an empty keymap array
 		$keymaps = array();
-		$offset  = 0;
 
-		// Offset by 1 if using cache-key salt
-		if ( function_exists( 'wp_object_cache' ) ) {
-			if ( wp_object_cache()->cache_key_salt ) {
-				$offset++;
-			}
-		}
-
-		// Increase offset for single-site
-		if ( ! is_multisite() ) {
-			$offset++;
-		}
+		// Get the cache settings used to build WordPress keys
+		$object_cache  = function_exists( 'wp_object_cache' )
+			? wp_object_cache()
+			: false;
+		$global_groups = isset( $object_cache->global_groups )
+			? (array) $object_cache->global_groups
+			: array();
+		$global_prefix = isset( $object_cache->global_prefix )
+			? (string) $object_cache->global_prefix
+			: '';
+		$cache_key_salt = ! empty( $object_cache->cache_key_salt )
+			? str_replace( $this->cache_key_separator . $this->cache_key_separator, $this->cache_key_separator, $object_cache->cache_key_salt )
+			: '';
+		$cache_key_salt = preg_replace( '/\s+/', '', $cache_key_salt );
+		$salt_parts     = ! empty( $cache_key_salt )
+			? explode( $this->cache_key_separator, $cache_key_salt )
+			: array();
 
 		// Get keys for this server and loop through them
 		foreach ( $this->retrieve_keys( $server ) as $item ) {
@@ -916,44 +921,60 @@ class WP_Spider_Cache_UI {
 			// Separate the item into parts
 			$parts = explode( $this->cache_key_separator, $item );
 
-			// Remove key salts
-			if ( $offset > 0 ) {
-				$parts = array_slice( $parts, $offset );
+			// Skip keys from other salted cache installations
+			if ( ! empty( $salt_parts ) ) {
+				if ( array_slice( $parts, 0, count( $salt_parts ) ) !== $salt_parts ) {
+					continue;
+				}
+
+				$parts = array_slice( $parts, count( $salt_parts ) );
 			}
 
-			// Multisite means first part is numeric
-			if ( is_numeric( $parts[ 0 ] ) ) {
+			// A cache key must contain at least a group and key
+			if ( count( $parts ) < 2 ) {
+				continue;
+			}
+
+			// Unprefixed keys are valid only for unprefixed global groups
+			if ( ( '' === $global_prefix ) && in_array( $parts[ 0 ], $global_groups, true ) ) {
+				$blog_id = is_multisite()
+					? 0
+					: (int) $GLOBALS['blog_id'];
+				$group   = $parts[ 0 ];
+				$key     = implode( $this->cache_key_separator, array_slice( $parts, 1 ) );
+
+			// Site cache groups use a numeric blog ID prefix
+			} elseif ( preg_match( '/^[1-9][0-9]*$/D', $parts[ 0 ] ) ) {
+
+				// Site keys must also contain a group and key
+				if ( count( $parts ) < 3 ) {
+					continue;
+				}
+
 				$blog_id = (int) $parts[ 0 ];
 				$group   = $parts[ 1 ];
-				$global  = false;
 
-			// Single site or global cache group
-			} else {
-				if ( is_multisite() ) {
-					$blog_id = 0;
-					$group   = $parts[ 0 ];
-					$global  = true;
-				} else {
-					$blog_id = (int) $GLOBALS['blog_id'];
-					$group   = $parts[ 0 ];
-					$global  = true;
+				// Global groups must use the configured global prefix
+				if ( in_array( $group, $global_groups, true ) ) {
+					if ( $global_prefix !== $parts[ 0 ] ) {
+						continue;
+					}
+
+					$blog_id = is_multisite()
+						? 0
+						: (int) $GLOBALS['blog_id'];
 				}
+
+				$key     = implode( $this->cache_key_separator, array_slice( $parts, 2 ) );
+
+			// Skip keys that do not match WordPress cache-key structure
+			} else {
+				continue;
 			}
 
 			// Only show global keys and keys for this site
 			if ( ! in_array( $blog_id, $this->blog_ids, true ) ) {
 				continue;
-			}
-
-			// Build the cache key based on number of parts
-			if ( ( count( $parts ) === 1 ) ) {
-				$key = $parts[ 0 ];
-			} else {
-				if ( true === $global ) {
-					$key = implode( $this->cache_key_separator, array_slice( $parts, 1 ) );
-				} else {
-					$key = implode( $this->cache_key_separator, array_slice( $parts, 2 ) );
-				}
 			}
 
 			// Build group key by combining blog ID & group
@@ -972,8 +993,8 @@ class WP_Spider_Cache_UI {
 			}
 		}
 
-		// Sort the keymaps by key
-		ksort( $keymaps );
+		// Sort the keymaps consistently across PHP versions
+		ksort( $keymaps, SORT_STRING );
 
 		return $keymaps;
 	}
