@@ -891,19 +891,17 @@ class WP_Spider_Cache_UI {
 
 		// Set an empty keymap array
 		$keymaps = array();
-		$offset  = 0;
 
-		// Offset by 1 if using cache-key salt
-		if ( function_exists( 'wp_object_cache' ) ) {
-			if ( wp_object_cache()->cache_key_salt ) {
-				$offset++;
-			}
-		}
-
-		// Increase offset for single-site
-		if ( ! is_multisite() ) {
-			$offset++;
-		}
+		// Get the cache settings used to build WordPress keys
+		$object_cache  = function_exists( 'wp_object_cache' )
+			? wp_object_cache()
+			: false;
+		$global_groups = isset( $object_cache->global_groups )
+			? (array) $object_cache->global_groups
+			: array();
+		$salt_parts    = ! empty( $object_cache->cache_key_salt )
+			? explode( $this->cache_key_separator, $object_cache->cache_key_salt )
+			: array();
 
 		// Get keys for this server and loop through them
 		foreach ( $this->retrieve_keys( $server ) as $item ) {
@@ -916,9 +914,13 @@ class WP_Spider_Cache_UI {
 			// Separate the item into parts
 			$parts = explode( $this->cache_key_separator, $item );
 
-			// Remove key salts
-			if ( $offset > 0 ) {
-				$parts = array_slice( $parts, $offset );
+			// Skip keys from other salted cache installations
+			if ( ! empty( $salt_parts ) ) {
+				if ( array_slice( $parts, 0, count( $salt_parts ) ) !== $salt_parts ) {
+					continue;
+				}
+
+				$parts = array_slice( $parts, count( $salt_parts ) );
 			}
 
 			// A cache key must contain at least a group and key
@@ -926,41 +928,34 @@ class WP_Spider_Cache_UI {
 				continue;
 			}
 
-			// Multisite means first part is numeric
-			if ( is_multisite() && is_numeric( $parts[ 0 ] ) ) {
+			// Global cache groups do not use a blog ID prefix
+			if ( in_array( $parts[ 0 ], $global_groups, true ) ) {
+				$blog_id = is_multisite()
+					? 0
+					: (int) $GLOBALS['blog_id'];
+				$group   = $parts[ 0 ];
+				$key     = implode( $this->cache_key_separator, array_slice( $parts, 1 ) );
 
-				// Site keys must also contain a blog ID
+			// Site cache groups use a numeric blog ID prefix
+			} elseif ( is_numeric( $parts[ 0 ] ) ) {
+
+				// Site keys must also contain a group and key
 				if ( count( $parts ) < 3 ) {
 					continue;
 				}
 
 				$blog_id = (int) $parts[ 0 ];
 				$group   = $parts[ 1 ];
-				$global  = false;
+				$key     = implode( $this->cache_key_separator, array_slice( $parts, 2 ) );
 
-			// Single site or global cache group
+			// Skip keys that do not match WordPress cache-key structure
 			} else {
-				if ( is_multisite() ) {
-					$blog_id = 0;
-					$group   = $parts[ 0 ];
-					$global  = true;
-				} else {
-					$blog_id = (int) $GLOBALS['blog_id'];
-					$group   = $parts[ 0 ];
-					$global  = true;
-				}
+				continue;
 			}
 
 			// Only show global keys and keys for this site
 			if ( ! in_array( $blog_id, $this->blog_ids, true ) ) {
 				continue;
-			}
-
-			// Build the cache key based on number of parts
-			if ( true === $global ) {
-				$key = implode( $this->cache_key_separator, array_slice( $parts, 1 ) );
-			} else {
-				$key = implode( $this->cache_key_separator, array_slice( $parts, 2 ) );
 			}
 
 			// Build group key by combining blog ID & group

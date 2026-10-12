@@ -8,7 +8,10 @@ define( 'ABSPATH', __DIR__ . '/' );
 
 $GLOBALS['blog_id']            = 1;
 $GLOBALS['is_multisite']       = false;
-$GLOBALS['wp_object_cache']    = (object) array( 'cache_key_salt' => '' );
+$GLOBALS['wp_object_cache']    = (object) array(
+	'cache_key_salt' => '',
+	'global_groups'  => array( 'users' )
+);
 
 function add_action() {}
 
@@ -70,8 +73,11 @@ $ui         = $reflection->newInstanceWithoutConstructor();
 $ui->items = array(
 	'1:options:alloptions',
 	'1:123:numeric-group-key',
+	'users:1',
 	'laravel:1',
-	'foreign:value'
+	'foreign:value',
+	'foreign:group:key',
+	'2:options:other-site'
 );
 
 set_private_property( $ui, 'blog_ids', array( 1 ) );
@@ -89,14 +95,24 @@ assert_same(
 			'group'   => 'options',
 			'keys'    => array( 'alloptions' ),
 			'item'    => '1:options:alloptions'
+		),
+		'1users' => array(
+			'blog_id' => 1,
+			'group'   => 'users',
+			'keys'    => array( '1' ),
+			'item'    => 'users:1'
 		)
 	),
 	get_keymaps( $ui ),
 	'Single-site key maps should exclude incomplete and unrelated keys.'
 );
 
-$GLOBALS['wp_object_cache']->cache_key_salt = 'site';
-$ui->items = array( 'site:1:options:alloptions' );
+$GLOBALS['wp_object_cache']->cache_key_salt = 'site:production';
+$ui->items = array(
+	'site:production:1:options:alloptions',
+	'other:production:1:options:foreign',
+	'site:staging:1:options:foreign'
+);
 
 assert_same(
 	array(
@@ -104,7 +120,7 @@ assert_same(
 			'blog_id' => 1,
 			'group'   => 'options',
 			'keys'    => array( 'alloptions' ),
-			'item'    => 'site:1:options:alloptions'
+			'item'    => 'site:production:1:options:alloptions'
 		)
 	),
 	get_keymaps( $ui ),
@@ -116,7 +132,9 @@ $GLOBALS['wp_object_cache']->cache_key_salt = '';
 $ui->items = array(
 	'2:posts:last_changed',
 	'2:posts',
-	'users:1'
+	'users:1',
+	'laravel:cache:foo',
+	'foreign:value'
 );
 
 set_private_property( $ui, 'blog_ids', array( 0, 2 ) );
