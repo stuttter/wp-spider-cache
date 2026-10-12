@@ -899,8 +899,12 @@ class WP_Spider_Cache_UI {
 		$global_groups = isset( $object_cache->global_groups )
 			? (array) $object_cache->global_groups
 			: array();
-		$salt_parts    = ! empty( $object_cache->cache_key_salt )
-			? explode( $this->cache_key_separator, $object_cache->cache_key_salt )
+		$cache_key_salt = ! empty( $object_cache->cache_key_salt )
+			? str_replace( $this->cache_key_separator . $this->cache_key_separator, $this->cache_key_separator, $object_cache->cache_key_salt )
+			: '';
+		$cache_key_salt = preg_replace( '/\s+/', '', $cache_key_salt );
+		$salt_parts     = ! empty( $cache_key_salt )
+			? explode( $this->cache_key_separator, $cache_key_salt )
 			: array();
 
 		// Get keys for this server and loop through them
@@ -928,7 +932,7 @@ class WP_Spider_Cache_UI {
 				continue;
 			}
 
-			// Global cache groups do not use a blog ID prefix
+			// Only registered global groups may omit the blog ID prefix
 			if ( in_array( $parts[ 0 ], $global_groups, true ) ) {
 				$blog_id = is_multisite()
 					? 0
@@ -937,7 +941,7 @@ class WP_Spider_Cache_UI {
 				$key     = implode( $this->cache_key_separator, array_slice( $parts, 1 ) );
 
 			// Site cache groups use a numeric blog ID prefix
-			} elseif ( is_numeric( $parts[ 0 ] ) ) {
+			} elseif ( preg_match( '/^[0-9]+$/D', $parts[ 0 ] ) ) {
 
 				// Site keys must also contain a group and key
 				if ( count( $parts ) < 3 ) {
