@@ -10,7 +10,8 @@ $GLOBALS['blog_id']            = 1;
 $GLOBALS['is_multisite']       = false;
 $GLOBALS['wp_object_cache']    = (object) array(
 	'cache_key_salt' => '',
-	'global_groups'  => array( 'users' )
+	'global_groups'  => array( 'users' ),
+	'global_prefix'  => '1'
 );
 
 function add_action() {}
@@ -74,14 +75,16 @@ $ui->items = array(
 	'1:options:alloptions',
 	'1:123:numeric-group-key',
 	'1:users:1',
-	'users:2',
+	'users:unprefixed-foreign',
 	'laravel:1',
 	'foreign:value',
 	'foreign:group:key',
 	'2:options:other-site',
 	'1.0:options:decimal-prefix',
 	'1e0:options:exponent-prefix',
-	'+1:options:signed-prefix'
+	'+1:options:signed-prefix',
+	'0:options:zero-prefix',
+	'01:options:padded-prefix'
 );
 
 set_private_property( $ui, 'blog_ids', array( 1 ) );
@@ -103,7 +106,7 @@ assert_same(
 		'1users' => array(
 			'blog_id' => 1,
 			'group'   => 'users',
-			'keys'    => array( '1', '2' ),
+			'keys'    => array( '1' ),
 			'item'    => '1:users:1'
 		)
 	),
@@ -111,11 +114,32 @@ assert_same(
 	'Single-site key maps should exclude incomplete and unrelated keys.'
 );
 
+$GLOBALS['wp_object_cache']->global_prefix = '';
+$ui->items = array(
+	'users:2',
+	'1:users:prefixed-foreign'
+);
+
+assert_same(
+	array(
+		'1users' => array(
+			'blog_id' => 1,
+			'group'   => 'users',
+			'keys'    => array( '2' ),
+			'item'    => 'users:2'
+		)
+	),
+	get_keymaps( $ui ),
+	'Custom-user-table global keys should omit the single-site prefix.'
+);
+
+$GLOBALS['wp_object_cache']->global_prefix  = '1';
 $GLOBALS['wp_object_cache']->cache_key_salt = 'site :: production';
 $ui->items = array(
 	'site:production:1:options:alloptions',
 	'other:production:1:options:foreign',
-	'site:staging:1:options:foreign'
+	'site:staging:1:options:foreign',
+	'site:production2:1:options:foreign'
 );
 
 assert_same(
@@ -133,12 +157,16 @@ assert_same(
 
 $GLOBALS['is_multisite']                    = true;
 $GLOBALS['wp_object_cache']->cache_key_salt = '';
+$GLOBALS['wp_object_cache']->global_prefix  = '';
 $ui->items = array(
 	'2:posts:last_changed',
 	'2:posts',
 	'users:1',
+	'2:users:prefixed-global',
 	'laravel:cache:foo',
-	'foreign:value'
+	'foreign:value',
+	'0:posts:zero-prefix',
+	'02:posts:padded-prefix'
 );
 
 set_private_property( $ui, 'blog_ids', array( 0, 2 ) );

@@ -899,6 +899,9 @@ class WP_Spider_Cache_UI {
 		$global_groups = isset( $object_cache->global_groups )
 			? (array) $object_cache->global_groups
 			: array();
+		$global_prefix = isset( $object_cache->global_prefix )
+			? (string) $object_cache->global_prefix
+			: '';
 		$cache_key_salt = ! empty( $object_cache->cache_key_salt )
 			? str_replace( $this->cache_key_separator . $this->cache_key_separator, $this->cache_key_separator, $object_cache->cache_key_salt )
 			: '';
@@ -932,8 +935,8 @@ class WP_Spider_Cache_UI {
 				continue;
 			}
 
-			// Only registered global groups may omit the blog ID prefix
-			if ( in_array( $parts[ 0 ], $global_groups, true ) ) {
+			// Unprefixed keys are valid only for unprefixed global groups
+			if ( ( '' === $global_prefix ) && in_array( $parts[ 0 ], $global_groups, true ) ) {
 				$blog_id = is_multisite()
 					? 0
 					: (int) $GLOBALS['blog_id'];
@@ -941,7 +944,7 @@ class WP_Spider_Cache_UI {
 				$key     = implode( $this->cache_key_separator, array_slice( $parts, 1 ) );
 
 			// Site cache groups use a numeric blog ID prefix
-			} elseif ( preg_match( '/^[0-9]+$/D', $parts[ 0 ] ) ) {
+			} elseif ( preg_match( '/^[1-9][0-9]*$/D', $parts[ 0 ] ) ) {
 
 				// Site keys must also contain a group and key
 				if ( count( $parts ) < 3 ) {
@@ -950,6 +953,18 @@ class WP_Spider_Cache_UI {
 
 				$blog_id = (int) $parts[ 0 ];
 				$group   = $parts[ 1 ];
+
+				// Global groups must use the configured global prefix
+				if ( in_array( $group, $global_groups, true ) ) {
+					if ( $global_prefix !== $parts[ 0 ] ) {
+						continue;
+					}
+
+					$blog_id = is_multisite()
+						? 0
+						: (int) $GLOBALS['blog_id'];
+				}
+
 				$key     = implode( $this->cache_key_separator, array_slice( $parts, 2 ) );
 
 			// Skip keys that do not match WordPress cache-key structure
