@@ -13,5 +13,8 @@
       "name": "John James Jacoby",
       "email": "johnjamesjacoby@me.com"
     }
-  ]
+  ],
+  "scripts": {
+    "test": "php tests/test-keymaps.php"
+  }
 }
