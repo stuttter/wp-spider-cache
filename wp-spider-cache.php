@@ -993,8 +993,8 @@ class WP_Spider_Cache_UI {
 			}
 		}
 
-		// Sort the keymaps by key
-		ksort( $keymaps );
+		// Sort the keymaps consistently across PHP versions
+		ksort( $keymaps, SORT_STRING );
 
 		return $keymaps;
 	}
