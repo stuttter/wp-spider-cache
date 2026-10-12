@@ -9,7 +9,7 @@ Contributors:      johnjamesjacoby
 Tags:              cache, memcache, memcached, object, output
 Requires PHP:      7.2
 Requires at least: 5.2
-Tested up to:      5.8
+Tested up to:      7.1
 Stable tag:        6.0.1
 
 Your friendly neighborhood Memcached solution for WordPress objects and pages.
